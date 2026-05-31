@@ -4,6 +4,15 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const PLATFORMS = ['Whatnot','eBay','TikTok Live','YouTube','Instagram','In-person','Other']
+const PLATFORM_FEES: Record<string,number> = {
+  'Whatnot': 8,
+  'eBay': 13,
+  'TikTok Live': 5,
+  'YouTube': 0,
+  'Instagram': 0,
+  'In-person': 0,
+  'Other': 0,
+}
 
 export default function NewStreamPage() {
   const router = useRouter()
@@ -11,6 +20,7 @@ export default function NewStreamPage() {
   const [date, setDate] = useState(new Date().toISOString().slice(0,10))
   const [platform, setPlatform] = useState('Whatnot')
   const [revenue, setRevenue] = useState('')
+  const [feePercent, setFeePercent] = useState('8')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -26,31 +36,29 @@ export default function NewStreamPage() {
     load()
   }, [])
 
+  const handlePlatformChange = (p: string) => {
+    setPlatform(p)
+    setFeePercent(String(PLATFORM_FEES[p] ?? 0))
+  }
+
   const addProduct = () => {
     if (inventory.length === 0) return
     const unused = inventory.find(i => !selectedProducts.find(s => s.id === i.id))
     if (unused) setSelectedProducts(prev => [...prev, { id: unused.id, qty: 1 }])
   }
 
-  const removeProduct = (id: string) => {
-    setSelectedProducts(prev => prev.filter(p => p.id !== id))
-  }
+  const removeProduct = (id: string) => setSelectedProducts(prev => prev.filter(p => p.id !== id))
+  const updateQty = (id: string, qty: number) => setSelectedProducts(prev => prev.map(p => p.id === id ? { ...p, qty } : p))
+  const updateProduct = (oldId: string, newId: string) => setSelectedProducts(prev => prev.map(p => p.id === oldId ? { ...p, id: newId } : p))
 
-  const updateQty = (id: string, qty: number) => {
-    setSelectedProducts(prev => prev.map(p => p.id === id ? { ...p, qty } : p))
-  }
-
-  const updateProduct = (oldId: string, newId: string) => {
-    setSelectedProducts(prev => prev.map(p => p.id === oldId ? { ...p, id: newId } : p))
-  }
-
+  const rev = parseFloat(revenue) || 0
+  const feeAmount = rev * (parseFloat(feePercent) || 0) / 100
   const totalCost = selectedProducts.reduce((total, sp) => {
     const item = inventory.find(i => i.id === sp.id)
     return total + (item?.cost_per_unit ?? 0) * sp.qty
   }, 0)
-
-  const rev = parseFloat(revenue) || 0
-  const profit = rev - totalCost
+  const totalDeductions = totalCost + feeAmount
+  const profit = rev - totalDeductions
   const margin = rev > 0 ? ((profit/rev)*100).toFixed(1) : '0'
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +71,8 @@ export default function NewStreamPage() {
 
     const { data: stream, error: err } = await supabase.from('streams').insert({
       user_id: user.id, title: title.trim(), stream_date: date,
-      platform, revenue: rev || null, inventory_cost: totalCost || null,
+      platform, revenue: rev || null,
+      inventory_cost: totalDeductions || null,
       notes: notes.trim() || null
     }).select().single()
 
@@ -113,7 +122,7 @@ export default function NewStreamPage() {
               </div>
               <div className="ns-field">
                 <label className="ns-label">Platform</label>
-                <select className="ns-input" value={platform} onChange={e=>setPlatform(e.target.value)}>
+                <select className="ns-input" value={platform} onChange={e=>handlePlatformChange(e.target.value)}>
                   {PLATFORMS.map(p=><option key={p}>{p}</option>)}
                 </select>
               </div>
@@ -123,26 +132,20 @@ export default function NewStreamPage() {
           <div className="ns-section">
             <div className="ns-section-head">
               <h2 className="ns-sh">Products used</h2>
-              <button type="button" className="ns-add-btn" onClick={addProduct} disabled={inventory.length === 0}>
-                + Add product
-              </button>
+              <button type="button" className="ns-add-btn" onClick={addProduct} disabled={inventory.length === 0}>+ Add product</button>
             </div>
             {inventory.length === 0 && (
               <p className="ns-hint-text">No inventory yet. <a href="/inventory" className="ns-link">Add products first →</a></p>
             )}
             {selectedProducts.length === 0 && inventory.length > 0 && (
-              <p className="ns-hint-text">Click "Add product" to link inventory — cost will calculate automatically.</p>
+              <p className="ns-hint-text">Click "Add product" to link inventory — cost calculates automatically.</p>
             )}
             {selectedProducts.map(sp => {
               const item = inventory.find(i => i.id === sp.id)
               const lineCost = (item?.cost_per_unit ?? 0) * sp.qty
               return (
                 <div key={sp.id} className="ns-product-row">
-                  <select
-                    className="ns-input ns-product-select"
-                    value={sp.id}
-                    onChange={e => updateProduct(sp.id, e.target.value)}
-                  >
+                  <select className="ns-input ns-product-select" value={sp.id} onChange={e=>updateProduct(sp.id, e.target.value)}>
                     {inventory.map(i => (
                       <option key={i.id} value={i.id} disabled={!!selectedProducts.find(s => s.id === i.id && s.id !== sp.id)}>
                         {i.product_name}
@@ -151,45 +154,44 @@ export default function NewStreamPage() {
                   </select>
                   <div className="ns-product-qty">
                     <label className="ns-label">Qty</label>
-                    <input
-                      className="ns-input"
-                      type="number"
-                      min="1"
-                      value={sp.qty}
-                      onChange={e => updateQty(sp.id, parseInt(e.target.value)||1)}
-                      style={{width:'70px'}}
-                    />
+                    <input className="ns-input" type="number" min="1" value={sp.qty} onChange={e=>updateQty(sp.id, parseInt(e.target.value)||1)} style={{width:'70px'}} />
                   </div>
                   <div className="ns-product-cost">
                     <label className="ns-label">Cost</label>
                     <p className="ns-cost-val">£{lineCost.toFixed(2)}</p>
                   </div>
-                  <button type="button" className="ns-remove-btn" onClick={() => removeProduct(sp.id)}>✕</button>
+                  <button type="button" className="ns-remove-btn" onClick={()=>removeProduct(sp.id)}>✕</button>
                 </div>
               )
             })}
             {selectedProducts.length > 0 && (
               <div className="ns-cost-total">
-                <span>Total inventory cost</span>
+                <span>Inventory cost</span>
                 <span className="ns-cost-total-val">£{totalCost.toFixed(2)}</span>
               </div>
             )}
           </div>
 
           <div className="ns-section">
-            <h2 className="ns-sh">Revenue</h2>
-            <div className="ns-field">
-              <label className="ns-label">Total revenue from stream (£)</label>
-              <input className="ns-input" type="number" min="0" step="0.01" placeholder="0.00" value={revenue} onChange={e=>setRevenue(e.target.value)} />
+            <h2 className="ns-sh">Revenue & fees</h2>
+            <div className="ns-row2">
+              <div className="ns-field">
+                <label className="ns-label">Total revenue (£)</label>
+                <input className="ns-input" type="number" min="0" step="0.01" placeholder="0.00" value={revenue} onChange={e=>setRevenue(e.target.value)} />
+              </div>
+              <div className="ns-field">
+                <label className="ns-label">Platform fee %
+                  <span className="ns-fee-badge">{platform}</span>
+                </label>
+                <input className="ns-input" type="number" min="0" max="100" step="0.1" value={feePercent} onChange={e=>setFeePercent(e.target.value)} />
+                {feeAmount > 0 && <p className="ns-hint-text">= £{feeAmount.toFixed(2)} deducted</p>}
+              </div>
             </div>
           </div>
 
           <div className="ns-section">
             <h2 className="ns-sh">Notes</h2>
-            <div className="ns-field">
-              <label className="ns-label">Notes (optional)</label>
-              <textarea className="ns-input ns-textarea" placeholder="Anything worth remembering..." value={notes} onChange={e=>setNotes(e.target.value)} rows={3} />
-            </div>
+            <textarea className="ns-input ns-textarea" placeholder="Anything worth remembering..." value={notes} onChange={e=>setNotes(e.target.value)} rows={3} />
           </div>
 
           {error && <p className="ns-error">{error}</p>}
@@ -200,20 +202,21 @@ export default function NewStreamPage() {
         </form>
 
         <div className="ns-panel">
-          <p className="ns-panel-label">Live profit</p>
+          <p className="ns-panel-label">True net profit</p>
           <p className="ns-panel-profit" style={{color: profit===0&&rev===0?'#52525b':profit>=0?'#4ade80':'#f87171'}}>
             £{profit.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}
           </p>
           <p className="ns-panel-margin" style={{color: profit>=0?'#4ade80':'#f87171'}}>{rev>0?`${margin}% margin`:'Enter revenue to calculate'}</p>
           <div className="ns-panel-divider"/>
           <div className="ns-panel-row"><span>Revenue</span><span>£{rev.toFixed(2)}</span></div>
-          <div className="ns-panel-row"><span>Inventory cost</span><span>− £{totalCost.toFixed(2)}</span></div>
-          <div className="ns-panel-row ns-panel-total"><span>Profit</span><span style={{color:profit>=0?'#4ade80':'#f87171'}}>£{profit.toFixed(2)}</span></div>
+          <div className="ns-panel-row ns-panel-deduction"><span>Inventory cost</span><span>− £{totalCost.toFixed(2)}</span></div>
+          <div className="ns-panel-row ns-panel-deduction"><span>Platform fee ({feePercent}%)</span><span>− £{feeAmount.toFixed(2)}</span></div>
+          <div className="ns-panel-row ns-panel-total"><span>Net profit</span><span style={{color:profit>=0?'#4ade80':'#f87171'}}>£{profit.toFixed(2)}</span></div>
           <div className="ns-panel-divider"/>
           <div className="ns-bar-track"><div className="ns-bar-fill" style={{width:`${Math.min(Math.abs(parseFloat(margin)),100)}%`,background:profit>=0?'#4ade80':'#f87171'}}/></div>
           {selectedProducts.length > 0 && (
             <div className="ns-products-summary">
-              <p className="ns-ps-label">Products in this stream</p>
+              <p className="ns-ps-label">Products</p>
               {selectedProducts.map(sp => {
                 const item = inventory.find(i => i.id === sp.id)
                 return item ? (
@@ -225,7 +228,7 @@ export default function NewStreamPage() {
               })}
             </div>
           )}
-          <p className="ns-tip">💡 Healthy margin is 25–40%</p>
+          <p className="ns-tip">💡 Healthy net margin is 20–35% after fees</p>
         </div>
       </div>
 
@@ -244,24 +247,25 @@ export default function NewStreamPage() {
         .ns-sh{font-size:11px;color:#52525b;text-transform:uppercase;letter-spacing:0.08em}
         .ns-field{display:flex;flex-direction:column;gap:6px}
         .ns-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-        .ns-label{font-size:12px;color:#a1a1aa}
+        .ns-label{font-size:12px;color:#a1a1aa;display:flex;align-items:center;gap:8px}
+        .ns-fee-badge{font-size:10px;background:rgba(245,158,11,0.12);color:#f59e0b;border:1px solid rgba(245,158,11,0.2);border-radius:4px;padding:1px 6px}
         .ns-input{background:#0e0e0f;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;font-family:'DM Mono',monospace;font-size:13px;color:#f4f4f5;outline:none;width:100%;appearance:none}
         .ns-input:focus{border-color:rgba(245,158,11,0.5)}
         .ns-input option{background:#18181b}
         .ns-textarea{resize:vertical;min-height:80px}
-        .ns-hint-text{font-size:12px;color:#52525b}
+        .ns-hint-text{font-size:11px;color:#52525b}
         .ns-link{color:#f59e0b;text-decoration:none}
         .ns-add-btn{background:none;border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:5px 12px;font-family:'DM Mono',monospace;font-size:12px;color:#a1a1aa;cursor:pointer}
-        .ns-add-btn:hover{color:#f4f4f5;border-color:rgba(255,255,255,0.2)}
+        .ns-add-btn:hover{color:#f4f4f5}
         .ns-add-btn:disabled{opacity:0.4;cursor:not-allowed}
         .ns-product-row{display:flex;align-items:flex-end;gap:10px}
         .ns-product-select{flex:1}
-        .ns-product-qty{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
-        .ns-product-cost{display:flex;flex-direction:column;gap:4px;flex-shrink:0;min-width:70px}
+        .ns-product-qty,.ns-product-cost{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+        .ns-product-cost{min-width:70px}
         .ns-cost-val{font-size:13px;color:#f4f4f5;font-weight:500;padding:9px 0}
-        .ns-remove-btn{background:none;border:none;color:#3f3f46;font-size:14px;cursor:pointer;padding:9px 4px;flex-shrink:0}
+        .ns-remove-btn{background:none;border:none;color:#3f3f46;font-size:14px;cursor:pointer;padding:9px 4px}
         .ns-remove-btn:hover{color:#f87171}
-        .ns-cost-total{display:flex;justify-content:space-between;align-items:center;padding:10px 0 0;border-top:1px solid rgba(255,255,255,0.06);font-size:13px;color:#71717a}
+        .ns-cost-total{display:flex;justify-content:space-between;padding:10px 0 0;border-top:1px solid rgba(255,255,255,0.06);font-size:13px;color:#71717a}
         .ns-cost-total-val{color:#f4f4f5;font-weight:500}
         .ns-error{font-size:12px;color:#f87171;padding:9px 12px;background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.2);border-radius:7px}
         .ns-actions{display:flex;gap:10px;justify-content:flex-end}
@@ -274,6 +278,7 @@ export default function NewStreamPage() {
         .ns-panel-margin{font-size:13px}
         .ns-panel-divider{height:1px;background:rgba(255,255,255,0.06)}
         .ns-panel-row{display:flex;justify-content:space-between;font-size:13px;color:#71717a}
+        .ns-panel-deduction{color:#52525b}
         .ns-panel-total{padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);color:#d4d4d8;font-weight:500}
         .ns-bar-track{height:4px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden}
         .ns-bar-fill{height:100%;border-radius:99px;transition:width 0.3s ease}
