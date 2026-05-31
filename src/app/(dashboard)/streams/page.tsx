@@ -1,43 +1,59 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
-export default async function StreamsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-  const { data: streams } = await supabase.from('streams').select('*').eq('user_id', user.id).order('stream_date', { ascending: false })
-  const all = streams ?? []
-  const totalRevenue = all.reduce((a,s) => a+(s.revenue??0), 0)
-  const totalProfit = all.reduce((a,s) => a+(s.revenue??0)-(s.inventory_cost??0), 0)
+export default function StreamsPage() {
+  const [streams, setStreams] = useState<any[]>([])
+
+  useEffect(() => {
+    const load = async () => {
+      const supabase = createClient()
+      const { data } = await supabase.from('streams').select('*').order('stream_date', { ascending: false })
+      setStreams(data ?? [])
+    }
+    load()
+  }, [])
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this stream?')) return
+    const supabase = createClient()
+    setStreams(prev => prev.filter(s => s.id !== id))
+    await supabase.from('streams').delete().eq('id', id)
+  }
+
+  const totalRevenue = streams.reduce((a,s) => a+(s.revenue??0), 0)
+  const totalProfit = streams.reduce((a,s) => a+(s.revenue??0)-(s.inventory_cost??0), 0)
+
   return (
     <div className="sl">
       <div className="sl-header">
         <div>
           <Link href="/" className="sl-back">← Dashboard</Link>
           <h1 className="sl-title">Streams</h1>
-          <p className="sl-sub">{all.length} streams · £{totalRevenue.toLocaleString()} revenue · £{totalProfit.toLocaleString()} profit</p>
+          <p className="sl-sub">{streams.length} streams · £{totalRevenue.toLocaleString()} revenue · £{totalProfit.toLocaleString()} profit</p>
         </div>
         <Link href="/streams/new" className="sl-cta">+ New stream</Link>
       </div>
-      {all.length === 0 ? (
+      {streams.length === 0 ? (
         <div className="sl-empty"><p>No streams yet.</p><Link href="/streams/new" className="sl-cta">Log your first stream</Link></div>
       ) : (
         <div className="sl-card">
           <table className="sl-table">
-            <thead><tr><th>Stream</th><th>Platform</th><th>Date</th><th>Revenue</th><th>Profit</th><th>Margin</th></tr></thead>
+            <thead><tr><th>Stream</th><th>Platform</th><th>Date</th><th>Revenue</th><th>Profit</th><th>Margin</th><th></th></tr></thead>
             <tbody>
-              {all.map(s => {
+              {streams.map(s => {
                 const profit = (s.revenue??0)-(s.inventory_cost??0)
                 const margin = s.revenue&&s.revenue>0 ? ((profit/s.revenue)*100).toFixed(1)+'%' : '—'
                 return (
                   <tr key={s.id}>
-                    <td><span className="sl-name">{s.title}</span></td>
+                    <td><span className="sl-name">{s.title}</span>{s.notes&&<span className="sl-note">{s.notes.slice(0,50)}</span>}</td>
                     <td>{s.platform??'—'}</td>
                     <td className="sl-muted">{s.stream_date??'—'}</td>
                     <td>{s.revenue?'£'+s.revenue:'—'}</td>
                     <td style={{color:s.revenue?(profit>=0?'#4ade80':'#f87171'):'#52525b'}}>{s.revenue?'£'+profit:'—'}</td>
                     <td style={{color:profit>=0?'#4ade80':'#f59e0b'}}>{margin}</td>
+                    <td><button className="sl-del" onClick={()=>handleDelete(s.id)}>✕</button></td>
                   </tr>
                 )
               })}
@@ -62,8 +78,11 @@ export default async function StreamsPage() {
         .sl-table td{padding:13px 18px;color:#a1a1aa;border-bottom:1px solid rgba(255,255,255,0.04)}
         .sl-table tr:last-child td{border-bottom:none}
         .sl-table tr:hover td{background:rgba(255,255,255,0.015)}
-        .sl-name{color:#d4d4d8;font-weight:500}
+        .sl-name{color:#d4d4d8;font-weight:500;display:block;margin-bottom:2px}
+        .sl-note{font-size:11px;color:#3f3f46;display:block}
         .sl-muted{color:#52525b}
+        .sl-del{background:none;border:none;color:#3f3f46;font-size:12px;cursor:pointer;padding:4px 8px;border-radius:4px;font-family:'DM Mono',monospace}
+        .sl-del:hover{color:#f87171;background:rgba(248,113,113,0.08)}
       `}</style>
     </div>
   )
