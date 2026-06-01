@@ -76,7 +76,7 @@ export default function ImportPage() {
         }
         const result = Array.from(streamMap.values()).map(s => ({
           ...s, totalFees: s.commission + s.processing, netEarnings: s.revenue - s.commission - s.processing
-        })).sort((a, b) => a.date.localeCompare(b.date))
+        })).filter(s => s.revenue > 0).sort((a, b) => a.date.localeCompare(b.date))
         setStreams(result)
         setSelected(new Set(result.map(s => s.livestream_id)))
       } catch {
