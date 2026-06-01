@@ -4,15 +4,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const PLATFORMS = ['Whatnot','eBay','TikTok Live','YouTube','Instagram','In-person','Other']
-const PLATFORM_FEES: Record<string,number> = {
-  'Whatnot': 8,
-  'eBay': 13,
-  'TikTok Live': 5,
-  'YouTube': 0,
-  'Instagram': 0,
-  'In-person': 0,
-  'Other': 0,
-}
+const PLATFORM_FEES: Record<string,number> = {'Whatnot':8,'eBay':13,'TikTok Live':5,'YouTube':0,'Instagram':0,'In-person':0,'Other':0}
+const VAT_RATE = 0.20
 
 export default function NewStreamPage() {
   const router = useRouter()
@@ -26,6 +19,7 @@ export default function NewStreamPage() {
   const [error, setError] = useState('')
   const [inventory, setInventory] = useState<any[]>([])
   const [selectedProducts, setSelectedProducts] = useState<{id:string, qty:number}[]>([])
+  const [vatEnabled, setVatEnabled] = useState(true)
 
   useEffect(() => {
     const load = async () => {
@@ -57,9 +51,19 @@ export default function NewStreamPage() {
     const item = inventory.find(i => i.id === sp.id)
     return total + (item?.cost_per_unit ?? 0) * sp.qty
   }, 0)
+
+  // VAT calculations
+  const vatReclaimable = vatEnabled && totalCost > 0 ? totalCost * VAT_RATE / (1 + VAT_RATE) : 0
+  const netCostExVat = totalCost - vatReclaimable
+  const vatOnSale = vatEnabled && rev > 0 ? rev * VAT_RATE / (1 + VAT_RATE) : 0
+  const netRevenueExVat = rev - vatOnSale
+
   const totalDeductions = totalCost + feeAmount
   const profit = rev - totalDeductions
+  const vatProfit = vatEnabled ? (netRevenueExVat - netCostExVat - feeAmount) : profit
   const margin = rev > 0 ? ((profit/rev)*100).toFixed(1) : '0'
+  const vatMargin = netRevenueExVat > 0 ? ((vatProfit/netRevenueExVat)*100).toFixed(1) : '0'
+  const netVatPosition = vatReclaimable - vatOnSale
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,25 +77,20 @@ export default function NewStreamPage() {
       user_id: user.id, title: title.trim(), stream_date: date,
       platform, revenue: rev || null,
       inventory_cost: totalDeductions || null,
-      notes: notes.trim() || null
+      notes: notes.trim() || null,
+      vat_reclaimable: vatEnabled && vatReclaimable > 0 ? vatReclaimable : null,
     }).select().single()
 
     if (err) { setError(err.message); setSaving(false); return }
 
     if (stream && selectedProducts.length > 0) {
       await supabase.from('stream_products').insert(
-        selectedProducts.map(sp => ({
-          stream_id: stream.id,
-          inventory_item_id: sp.id,
-          quantity_used: sp.qty
-        }))
+        selectedProducts.map(sp => ({ stream_id: stream.id, inventory_item_id: sp.id, quantity_used: sp.qty }))
       )
       for (const sp of selectedProducts) {
         const item = inventory.find(i => i.id === sp.id)
         if (item) {
-          await supabase.from('inventory_items')
-            .update({ quantity: Math.max(0, (item.quantity ?? 0) - sp.qty) })
-            .eq('id', sp.id)
+          await supabase.from('inventory_items').update({ quantity: Math.max(0, (item.quantity ?? 0) - sp.qty) }).eq('id', sp.id)
         }
       }
     }
@@ -108,7 +107,6 @@ export default function NewStreamPage() {
       </div>
       <div className="ns-layout">
         <form onSubmit={handleSubmit} className="ns-form">
-
           <div className="ns-section">
             <h2 className="ns-sh">Stream details</h2>
             <div className="ns-field">
@@ -134,41 +132,24 @@ export default function NewStreamPage() {
               <h2 className="ns-sh">Products used</h2>
               <button type="button" className="ns-add-btn" onClick={addProduct} disabled={inventory.length === 0}>+ Add product</button>
             </div>
-            {inventory.length === 0 && (
-              <p className="ns-hint-text">No inventory yet. <a href="/inventory" className="ns-link">Add products first →</a></p>
-            )}
-            {selectedProducts.length === 0 && inventory.length > 0 && (
-              <p className="ns-hint-text">Click "Add product" to link inventory — cost calculates automatically.</p>
-            )}
+            {inventory.length === 0 && <p className="ns-hint-text">No inventory yet. <a href="/inventory" className="ns-link">Add products first →</a></p>}
+            {selectedProducts.length === 0 && inventory.length > 0 && <p className="ns-hint-text">Click "Add product" to link inventory — cost calculates automatically.</p>}
             {selectedProducts.map(sp => {
               const item = inventory.find(i => i.id === sp.id)
               const lineCost = (item?.cost_per_unit ?? 0) * sp.qty
               return (
                 <div key={sp.id} className="ns-product-row">
                   <select className="ns-input ns-product-select" value={sp.id} onChange={e=>updateProduct(sp.id, e.target.value)}>
-                    {inventory.map(i => (
-                      <option key={i.id} value={i.id} disabled={!!selectedProducts.find(s => s.id === i.id && s.id !== sp.id)}>
-                        {i.product_name}
-                      </option>
-                    ))}
+                    {inventory.map(i => <option key={i.id} value={i.id} disabled={!!selectedProducts.find(s => s.id === i.id && s.id !== sp.id)}>{i.product_name}</option>)}
                   </select>
-                  <div className="ns-product-qty">
-                    <label className="ns-label">Qty</label>
-                    <input className="ns-input" type="number" min="1" value={sp.qty} onChange={e=>updateQty(sp.id, parseInt(e.target.value)||1)} style={{width:'70px'}} />
-                  </div>
-                  <div className="ns-product-cost">
-                    <label className="ns-label">Cost</label>
-                    <p className="ns-cost-val">£{lineCost.toFixed(2)}</p>
-                  </div>
+                  <div className="ns-product-qty"><label className="ns-label">Qty</label><input className="ns-input" type="number" min="1" value={sp.qty} onChange={e=>updateQty(sp.id, parseInt(e.target.value)||1)} style={{width:'70px'}} /></div>
+                  <div className="ns-product-cost"><label className="ns-label">Cost</label><p className="ns-cost-val">£{lineCost.toFixed(2)}</p></div>
                   <button type="button" className="ns-remove-btn" onClick={()=>removeProduct(sp.id)}>✕</button>
                 </div>
               )
             })}
             {selectedProducts.length > 0 && (
-              <div className="ns-cost-total">
-                <span>Inventory cost</span>
-                <span className="ns-cost-total-val">£{totalCost.toFixed(2)}</span>
-              </div>
+              <div className="ns-cost-total"><span>Inventory cost</span><span className="ns-cost-total-val">£{totalCost.toFixed(2)}</span></div>
             )}
           </div>
 
@@ -180,13 +161,41 @@ export default function NewStreamPage() {
                 <input className="ns-input" type="number" min="0" step="0.01" placeholder="0.00" value={revenue} onChange={e=>setRevenue(e.target.value)} />
               </div>
               <div className="ns-field">
-                <label className="ns-label">Platform fee %
-                  <span className="ns-fee-badge">{platform}</span>
-                </label>
+                <label className="ns-label">Platform fee % <span className="ns-fee-badge">{platform}</span></label>
                 <input className="ns-input" type="number" min="0" max="100" step="0.1" value={feePercent} onChange={e=>setFeePercent(e.target.value)} />
                 {feeAmount > 0 && <p className="ns-hint-text">= £{feeAmount.toFixed(2)} deducted</p>}
               </div>
             </div>
+          </div>
+
+          <div className="ns-section ns-vat-section">
+            <div className="ns-section-head">
+              <h2 className="ns-sh">VAT <span className="ns-vat-rate-badge">20%</span></h2>
+              <button type="button" className={`ns-vat-toggle ${vatEnabled ? 'on' : ''}`} onClick={() => setVatEnabled(v => !v)}>
+                {vatEnabled ? 'VAT on' : 'VAT off'}
+              </button>
+            </div>
+            {vatEnabled && (
+              <div className="ns-vat-grid">
+                <div className="ns-vat-stat">
+                  <p className="ns-vat-label">VAT reclaimable on purchases</p>
+                  <p className="ns-vat-val green">+ £{vatReclaimable.toFixed(2)}</p>
+                  <p className="ns-vat-sub">20% of £{totalCost.toFixed(2)} stock cost</p>
+                </div>
+                <div className="ns-vat-stat">
+                  <p className="ns-vat-label">VAT owed on sales</p>
+                  <p className="ns-vat-val red">− £{vatOnSale.toFixed(2)}</p>
+                  <p className="ns-vat-sub">20% of £{rev.toFixed(2)} revenue</p>
+                </div>
+                <div className="ns-vat-stat">
+                  <p className="ns-vat-label">Net VAT position</p>
+                  <p className="ns-vat-val" style={{color: netVatPosition >= 0 ? '#4ade80' : '#f87171'}}>
+                    {netVatPosition >= 0 ? '+ ' : ''}£{netVatPosition.toFixed(2)}
+                  </p>
+                  <p className="ns-vat-sub">{netVatPosition >= 0 ? 'HMRC owes you' : 'You owe HMRC'}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="ns-section">
@@ -212,19 +221,24 @@ export default function NewStreamPage() {
           <div className="ns-panel-row ns-panel-deduction"><span>Inventory cost</span><span>− £{totalCost.toFixed(2)}</span></div>
           <div className="ns-panel-row ns-panel-deduction"><span>Platform fee ({feePercent}%)</span><span>− £{feeAmount.toFixed(2)}</span></div>
           <div className="ns-panel-row ns-panel-total"><span>Net profit</span><span style={{color:profit>=0?'#4ade80':'#f87171'}}>£{profit.toFixed(2)}</span></div>
+          {vatEnabled && (rev > 0 || totalCost > 0) && (
+            <>
+              <div className="ns-panel-divider"/>
+              <p className="ns-ps-label">After VAT</p>
+              <div className="ns-panel-row"><span>Net revenue (ex-VAT)</span><span>£{netRevenueExVat.toFixed(2)}</span></div>
+              <div className="ns-panel-row ns-panel-deduction"><span>Net cost (ex-VAT)</span><span>− £{netCostExVat.toFixed(2)}</span></div>
+              <div className="ns-panel-row ns-panel-total"><span>VAT-adjusted profit</span><span style={{color:vatProfit>=0?'#4ade80':'#f87171'}}>£{vatProfit.toFixed(2)}</span></div>
+              <div className="ns-panel-row" style={{color: netVatPosition >= 0 ? '#4ade80' : '#f87171'}}><span>VAT position</span><span>{netVatPosition >= 0 ? '+' : ''}£{netVatPosition.toFixed(2)}</span></div>
+            </>
+          )}
           <div className="ns-panel-divider"/>
-          <div className="ns-bar-track"><div className="ns-bar-fill" style={{width:`${Math.min(Math.abs(parseFloat(margin)),100)}%`,background:profit>=0?'#4ade80':'#f87171'}}/></div>
+          <div className="ns-bar-track"><div className="ns-bar-fill" style={{width:`${Math.min(Math.abs(parseFloat(vatEnabled?vatMargin:margin)),100)}%`,background:profit>=0?'#4ade80':'#f87171'}}/></div>
           {selectedProducts.length > 0 && (
             <div className="ns-products-summary">
               <p className="ns-ps-label">Products</p>
               {selectedProducts.map(sp => {
                 const item = inventory.find(i => i.id === sp.id)
-                return item ? (
-                  <div key={sp.id} className="ns-ps-row">
-                    <span>{item.product_name}</span>
-                    <span>{sp.qty}x · £{((item.cost_per_unit??0)*sp.qty).toFixed(0)}</span>
-                  </div>
-                ) : null
+                return item ? <div key={sp.id} className="ns-ps-row"><span>{item.product_name}</span><span>{sp.qty}x · £{((item.cost_per_unit??0)*sp.qty).toFixed(0)}</span></div> : null
               })}
             </div>
           )}
@@ -243,8 +257,19 @@ export default function NewStreamPage() {
         .ns-layout{display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start}
         .ns-form{display:flex;flex-direction:column;gap:16px}
         .ns-section{background:#18181b;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px}
+        .ns-vat-section{border-color:rgba(96,165,250,0.2)}
         .ns-section-head{display:flex;align-items:center;justify-content:space-between}
-        .ns-sh{font-size:11px;color:#52525b;text-transform:uppercase;letter-spacing:0.08em}
+        .ns-sh{font-size:11px;color:#52525b;text-transform:uppercase;letter-spacing:0.08em;display:flex;align-items:center;gap:8px}
+        .ns-vat-rate-badge{font-size:10px;background:rgba(96,165,250,0.1);color:#60a5fa;border:1px solid rgba(96,165,250,0.2);border-radius:4px;padding:1px 6px}
+        .ns-vat-toggle{font-size:11px;font-family:'DM Mono',monospace;padding:4px 12px;border-radius:20px;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:none;color:#52525b}
+        .ns-vat-toggle.on{background:rgba(96,165,250,0.1);color:#60a5fa;border-color:rgba(96,165,250,0.3)}
+        .ns-vat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+        .ns-vat-stat{background:#0e0e0f;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:4px}
+        .ns-vat-label{font-size:10px;color:#52525b;text-transform:uppercase;letter-spacing:0.05em}
+        .ns-vat-val{font-size:18px;font-weight:500;color:#f4f4f5}
+        .ns-vat-val.green{color:#4ade80}
+        .ns-vat-val.red{color:#f87171}
+        .ns-vat-sub{font-size:10px;color:#3f3f46}
         .ns-field{display:flex;flex-direction:column;gap:6px}
         .ns-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
         .ns-label{font-size:12px;color:#a1a1aa;display:flex;align-items:center;gap:8px}
@@ -286,7 +311,7 @@ export default function NewStreamPage() {
         .ns-ps-label{font-size:11px;color:#52525b;text-transform:uppercase;letter-spacing:0.06em}
         .ns-ps-row{display:flex;justify-content:space-between;font-size:12px;color:#71717a}
         .ns-tip{font-size:11px;color:#3f3f46}
-        @media(max-width:680px){.ns-layout{grid-template-columns:1fr}.ns-row2{grid-template-columns:1fr}.ns-product-row{flex-wrap:wrap}}
+        @media(max-width:680px){.ns-layout{grid-template-columns:1fr}.ns-row2{grid-template-columns:1fr}.ns-product-row{flex-wrap:wrap}.ns-vat-grid{grid-template-columns:1fr}}
       `}</style>
     </div>
   )

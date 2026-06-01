@@ -7,6 +7,7 @@ const PLATFORMS = ['Whatnot','eBay','TikTok Live','YouTube','Instagram','In-pers
 const SHIP = ['pending','packed','shipped','delivered']
 const SHIP_COLORS: Record<string,string> = {pending:'#f59e0b',packed:'#60a5fa',shipped:'#a78bfa',delivered:'#4ade80'}
 const PAY_COLORS: Record<string,string> = {unpaid:'#f87171',paid:'#4ade80'}
+const VAT_RATE = 0.20
 
 export default function SalesPage() {
   const [sales, setSales] = useState<any[]>([])
@@ -19,6 +20,7 @@ export default function SalesPage() {
   const [streamId, setStreamId] = useState('')
   const [shipping, setShipping] = useState('pending')
   const [payment, setPayment] = useState('unpaid')
+  const [vatEnabled, setVatEnabled] = useState(true)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -35,6 +37,10 @@ export default function SalesPage() {
     load()
   }, [])
 
+  const saleAmt = parseFloat(amount) || 0
+  const vatOnSale = vatEnabled && saleAmt > 0 ? saleAmt * VAT_RATE / (1 + VAT_RATE) : 0
+  const netSale = saleAmt - vatOnSale
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -43,10 +49,15 @@ export default function SalesPage() {
     if (!user) return
     const { data } = await supabase.from('sales').insert({
       user_id: user.id, buyer_name: buyer.trim()||null, product_description: product.trim()||null,
-      sale_amount: parseFloat(amount)||null, platform, stream_id: streamId||null,
-      shipping_status: shipping, payment_status: payment
+      sale_amount: saleAmt||null, platform, stream_id: streamId||null,
+      shipping_status: shipping, payment_status: payment,
+      vat_on_sale: vatEnabled && vatOnSale > 0 ? vatOnSale : null,
     }).select().single()
-    if (data) { setSales(prev => [data, ...prev]); setBuyer(''); setProduct(''); setAmount(''); setStreamId(''); setShipping('pending'); setPayment('unpaid'); setShowForm(false) }
+    if (data) {
+      setSales(prev => [data, ...prev])
+      setBuyer(''); setProduct(''); setAmount(''); setStreamId('')
+      setShipping('pending'); setPayment('unpaid'); setShowForm(false)
+    }
     setSaving(false)
   }
 
@@ -73,9 +84,10 @@ export default function SalesPage() {
   }
 
   const totalRevenue = sales.reduce((a,s) => a+(s.sale_amount??0), 0)
+  const totalVatOwed = sales.reduce((a,s) => a+(s.vat_on_sale??0), 0)
   const unpaid = sales.filter(s => s.payment_status==='unpaid').length
   const toShip = sales.filter(s => !['shipped','delivered'].includes(s.shipping_status??'')).length
-  const filtered = sales.filter(s => !search || [s.buyer_name,s.product_description,s.platform].some(v=>v?.toLowerCase().includes(search.toLowerCase())))
+  const filtered = sales.filter(s => !search || [s.buyer_name,s.product_description,s.platform].some((v:any)=>v?.toLowerCase().includes(search.toLowerCase())))
 
   return (
     <div className="sa">
@@ -87,6 +99,15 @@ export default function SalesPage() {
         </div>
         <button className="sa-cta" onClick={()=>setShowForm(v=>!v)}>{showForm?'✕ Close':'+ Log sale'}</button>
       </div>
+
+      {totalVatOwed > 0 && (
+        <div className="sa-vat-banner">
+          <span className="sa-vat-banner-label">VAT owed on all sales</span>
+          <span className="sa-vat-banner-amount">£{totalVatOwed.toFixed(2)}</span>
+          <span className="sa-vat-banner-sub">included in your £{totalRevenue.toFixed(2)} total revenue</span>
+        </div>
+      )}
+
       {showForm && (
         <form onSubmit={handleAdd} className="sa-form">
           <div className="sa-form-grid">
@@ -98,12 +119,23 @@ export default function SalesPage() {
             <div className="sa-field"><label className="sa-label">Payment</label><select className="sa-input" value={payment} onChange={e=>setPayment(e.target.value)}><option value="unpaid">Unpaid</option><option value="paid">Paid</option></select></div>
             <div className="sa-field"><label className="sa-label">Shipping</label><select className="sa-input" value={shipping} onChange={e=>setShipping(e.target.value)}>{SHIP.map(s=><option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}</select></div>
           </div>
+          <div className="sa-vat-row">
+            <button type="button" className={`sa-vat-toggle ${vatEnabled?'on':''}`} onClick={()=>setVatEnabled(v=>!v)}>
+              VAT {vatEnabled?'on':'off'}
+            </button>
+            {vatEnabled && saleAmt > 0 && (
+              <span className="sa-vat-hint">
+                VAT on this sale: <strong>£{vatOnSale.toFixed(2)}</strong> · Net: <strong>£{netSale.toFixed(2)}</strong>
+              </span>
+            )}
+          </div>
           <div className="sa-form-actions">
             <button type="button" className="sa-ghost" onClick={()=>setShowForm(false)}>Cancel</button>
             <button type="submit" className="sa-submit" disabled={saving}>{saving?'Saving…':'Log sale'}</button>
           </div>
         </form>
       )}
+
       {sales.length === 0 && !showForm ? (
         <div className="sa-empty"><p>No sales yet.</p><button className="sa-cta" onClick={()=>setShowForm(true)}>+ Log your first sale</button></div>
       ) : (
@@ -112,7 +144,7 @@ export default function SalesPage() {
           <div className="sa-card">
             {filtered.length === 0 ? <p className="sa-none">No results.</p> : (
               <table className="sa-table">
-                <thead><tr><th>Buyer</th><th>Product</th><th>Platform</th><th>Amount</th><th>Payment</th><th>Shipping</th><th></th></tr></thead>
+                <thead><tr><th>Buyer</th><th>Product</th><th>Platform</th><th>Amount</th><th>VAT</th><th>Payment</th><th>Shipping</th><th></th></tr></thead>
                 <tbody>
                   {filtered.map(s => (
                     <tr key={s.id}>
@@ -120,6 +152,7 @@ export default function SalesPage() {
                       <td><span className="sa-product">{s.product_description||'—'}</span></td>
                       <td><span className="sa-platform">{s.platform}</span></td>
                       <td><span className="sa-amount">{s.sale_amount?'£'+s.sale_amount:'—'}</span></td>
+                      <td><span className="sa-vat-cell">{s.vat_on_sale?'£'+s.vat_on_sale.toFixed(2):'—'}</span></td>
                       <td><button className="sa-badge" style={{color:PAY_COLORS[s.payment_status??'unpaid'],borderColor:PAY_COLORS[s.payment_status??'unpaid']+'44',background:PAY_COLORS[s.payment_status??'unpaid']+'11'}} onClick={()=>cyclePayment(s.id,s.payment_status??'unpaid')}>{s.payment_status??'unpaid'}</button></td>
                       <td><button className="sa-badge" style={{color:SHIP_COLORS[s.shipping_status??'pending'],borderColor:SHIP_COLORS[s.shipping_status??'pending']+'44',background:SHIP_COLORS[s.shipping_status??'pending']+'11'}} onClick={()=>cycleShipping(s.id,s.shipping_status??'pending')}>{s.shipping_status??'pending'}</button></td>
                       <td><button className="sa-del" onClick={()=>handleDelete(s.id)}>✕</button></td>
@@ -141,8 +174,17 @@ export default function SalesPage() {
         .sa-title{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;color:#f4f4f5;margin-bottom:4px}
         .sa-sub{font-size:13px;color:#52525b}
         .sa-cta{background:#f59e0b;color:#0e0e0f;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:500;font-family:'DM Mono',monospace;cursor:pointer;white-space:nowrap}
+        .sa-vat-banner{display:flex;align-items:center;gap:12px;background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.2);border-radius:10px;padding:12px 16px}
+        .sa-vat-banner-label{font-size:12px;color:#60a5fa}
+        .sa-vat-banner-amount{font-size:18px;font-weight:500;color:#60a5fa}
+        .sa-vat-banner-sub{font-size:11px;color:#3f3f46;margin-left:auto}
         .sa-form{background:#18181b;border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px}
         .sa-form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+        .sa-vat-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#0e0e0f;border-radius:8px;border:1px solid rgba(96,165,250,0.15)}
+        .sa-vat-toggle{font-size:11px;font-family:'DM Mono',monospace;padding:4px 12px;border-radius:20px;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:none;color:#52525b;white-space:nowrap}
+        .sa-vat-toggle.on{background:rgba(96,165,250,0.1);color:#60a5fa;border-color:rgba(96,165,250,0.3)}
+        .sa-vat-hint{font-size:12px;color:#71717a}
+        .sa-vat-hint strong{color:#60a5fa}
         .sa-field{display:flex;flex-direction:column;gap:6px}
         .sa-label{font-size:12px;color:#a1a1aa}
         .sa-input{background:#0e0e0f;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;font-family:'DM Mono',monospace;font-size:13px;color:#f4f4f5;outline:none;width:100%;appearance:none}
@@ -155,7 +197,7 @@ export default function SalesPage() {
         .sa-search{background:#18181b;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:13px;color:#f4f4f5;outline:none;width:100%;max-width:320px}
         .sa-search:focus{border-color:rgba(245,158,11,0.4)}
         .sa-card{background:#18181b;border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:auto}
-        .sa-table{width:100%;border-collapse:collapse;font-size:13px;min-width:600px}
+        .sa-table{width:100%;border-collapse:collapse;font-size:13px;min-width:700px}
         .sa-table th{text-align:left;padding:12px 16px;color:#52525b;font-weight:400;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid rgba(255,255,255,0.06)}
         .sa-table td{padding:12px 16px;color:#a1a1aa;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle}
         .sa-table tr:last-child td{border-bottom:none}
@@ -164,6 +206,7 @@ export default function SalesPage() {
         .sa-product{font-size:12px;color:#71717a}
         .sa-platform{font-size:11px;color:#71717a;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:5px;padding:2px 8px}
         .sa-amount{font-weight:500;color:#f4f4f5}
+        .sa-vat-cell{font-size:12px;color:#60a5fa}
         .sa-badge{font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid;cursor:pointer;font-family:'DM Mono',monospace;font-weight:500}
         .sa-del{background:none;border:none;color:#3f3f46;font-size:12px;cursor:pointer;padding:4px 8px;border-radius:4px}
         .sa-del:hover{color:#f87171;background:rgba(248,113,113,0.08)}
