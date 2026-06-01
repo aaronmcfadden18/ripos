@@ -150,7 +150,7 @@ export default function ImportPage() {
         </div>
       ) : streams.length === 0 ? (
         <div className="imp-drop" onDrop={handleDrop} onDragOver={e=>e.preventDefault()} onClick={()=>document.getElementById('imp-file')?.click()}>
-          <input id="imp-file" type="file" accept=".csv" onChange={handleInput} style={{display:'none'}} />
+          <input id="imp-file" type="file" accept=".csv,text/csv,text/plain,*/*" onChange={handleInput} style={{display:'none'}} />
           <div className="imp-drop-icon">↑</div>
           <p className="imp-drop-title">Drop your Whatnot CSV here</p>
           <p className="imp-drop-sub">or click to browse · earnings export only</p>
