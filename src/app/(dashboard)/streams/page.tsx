@@ -66,7 +66,7 @@ export default function StreamsPage() {
           <h1 className="sl-title">Streams</h1>
           <p className="sl-sub">{filtered.length} streams</p>
         </div>
-        <Link href="/streams/new" className="sl-cta">+ New stream</Link>
+        <div style={{display:"flex",gap:"10px"}}><Link href="/streams/import" className="sl-import">↑ Import CSV</Link><Link href="/streams/new" className="sl-cta">+ New stream</Link></div>
       </div>
 
       {/* Summary stats */}
@@ -255,7 +255,7 @@ export default function StreamsPage() {
         .sl-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
         .sl-title{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;color:#f4f4f5;margin-bottom:4px}
         .sl-sub{font-size:13px;color:#52525b}
-        .sl-cta{background:#f59e0b;color:#0e0e0f;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:500;text-decoration:none;white-space:nowrap;border:none;cursor:pointer;font-family:'DM Mono',monospace}
+        .sl-import{background:none;border:1px solid rgba(245,158,11,0.3);color:#f59e0b;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:500;text-decoration:none;white-space:nowrap;font-family:"DM Mono",monospace}.sl-import:hover{background:rgba(245,158,11,0.08)}.sl-cta{background:#f59e0b;color:#0e0e0f;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:500;text-decoration:none;white-space:nowrap;border:none;cursor:pointer;font-family:'DM Mono',monospace}
         .sl-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
         .sl-stat{background:#18181b;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px}
         .sl-stat-best{border-color:rgba(245,158,11,0.2)}
