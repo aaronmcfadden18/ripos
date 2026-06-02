@@ -134,8 +134,8 @@ export default function OnboardingPage() {
     setQSaving(false)
   }
 
-  const finish = () => { localStorage.setItem('ripos_onboarded', 'true'); router.push('/') }
-  const skip = () => { localStorage.setItem('ripos_onboarded', 'true'); router.push('/') }
+  const finish = () => { localStorage.setItem('ripos_onboarded', 'true'); router.push('/dashboard-home') }
+  const skip = () => { localStorage.setItem('ripos_onboarded', 'true'); router.push('/dashboard-home') }
 
   const totalSteps = isMobile ? 2 : 3
 
