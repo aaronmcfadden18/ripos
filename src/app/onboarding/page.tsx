@@ -168,7 +168,7 @@ export default function OnboardingPage() {
               <div className="ob-feature"><span className="ob-feature-icon">{isMobile ? '⚡' : '📥'}</span><div><p className="ob-feature-title">{isMobile ? 'Quick stock logging' : 'Whatnot CSV import'}</p><p className="ob-feature-desc">{isMobile ? 'Log purchases in 15 seconds on your phone' : 'Pull in all your streams and sales in one click'}</p></div></div>
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:'10px',width:'100%'}}>
-              {['Spreadsheet','I don't track','Notes app / memory','Accountant / other software'].map(opt => (
+              {['Spreadsheet',"I don't track",'Notes app / memory','Accountant / other software'].map(opt => (
                 <button key={opt} className={trackingMethod===opt?'ob-btn':'ob-btn-ghost'} onClick={()=>setTrackingMethod(opt)} style={{textAlign:'left',padding:'12px 16px'}}>
                   {trackingMethod===opt?'✓ ':''}{opt}
                 </button>
