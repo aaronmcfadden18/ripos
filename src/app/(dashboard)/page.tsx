@@ -15,6 +15,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const load = async () => {
+      // Check onboarding first
+      const onboarded = localStorage.getItem('ripos_onboarded')
+      if (!onboarded) {
+        router.push('/onboarding')
+        return
+      }
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
@@ -41,7 +47,6 @@ export default function DashboardPage() {
   const lowStock = inventory.filter(i => (i.quantity ?? 0) <= 2).length
   const toShip = sales.filter(s => !['shipped', 'delivered'].includes(s.shipping_status ?? '')).length
 
-  // Top buyers
   const buyerMap = new Map<string, { count: number; total: number }>()
   for (const s of sales) {
     if (!s.buyer_name) continue
@@ -53,8 +58,6 @@ export default function DashboardPage() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5)
   const maxCount = topBuyers[0]?.count ?? 1
-
-  // Chart data — last 8 streams
   const chartStreams = streams.slice(-8)
 
   useEffect(() => {
@@ -73,39 +76,16 @@ export default function DashboardPage() {
             return new Date(s.stream_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
           }),
           datasets: [
-            {
-              label: 'Revenue',
-              data: chartStreams.map(s => s.revenue ?? 0),
-              backgroundColor: 'rgba(245,158,11,0.7)',
-              borderRadius: 4,
-              borderSkipped: false,
-            },
-            {
-              label: 'Profit',
-              data: chartStreams.map(s => (s.revenue ?? 0) - (s.inventory_cost ?? 0)),
-              backgroundColor: 'rgba(74,222,128,0.6)',
-              borderRadius: 4,
-              borderSkipped: false,
-            }
+            { label: 'Revenue', data: chartStreams.map(s => s.revenue ?? 0), backgroundColor: 'rgba(245,158,11,0.7)', borderRadius: 4, borderSkipped: false },
+            { label: 'Profit', data: chartStreams.map(s => (s.revenue ?? 0) - (s.inventory_cost ?? 0)), backgroundColor: 'rgba(74,222,128,0.6)', borderRadius: 4, borderSkipped: false }
           ]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: (ctx: any) => '£' + ctx.parsed.y.toFixed(2) } }
-          },
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx: any) => '£' + ctx.parsed.y.toFixed(2) } } },
           scales: {
-            x: {
-              grid: { color: 'rgba(255,255,255,0.04)' },
-              ticks: { color: '#52525b', font: { size: 10, family: 'DM Mono' }, autoSkip: false, maxRotation: 0 }
-            },
-            y: {
-              grid: { color: 'rgba(255,255,255,0.04)' },
-              ticks: { color: '#52525b', font: { size: 10, family: 'DM Mono' }, callback: (v: any) => '£' + v },
-              border: { display: false }
-            }
+            x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#52525b', font: { size: 10, family: 'DM Mono' }, autoSkip: false, maxRotation: 0 } },
+            y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#52525b', font: { size: 10, family: 'DM Mono' }, callback: (v: any) => '£' + v }, border: { display: false } }
           }
         }
       })
@@ -115,6 +95,8 @@ export default function DashboardPage() {
   }, [loading, streams.length])
 
   const initials = (name: string) => name.slice(0, 2).toUpperCase()
+
+  if (loading) return null
 
   return (
     <div className="dash">
@@ -165,7 +147,7 @@ export default function DashboardPage() {
           </div>
           <div style={{padding:'0 16px 16px'}}>
             <div style={{position:'relative',width:'100%',height:'160px'}}>
-              <canvas ref={chartRef} role="img" aria-label="Bar chart showing revenue and profit per stream"></canvas>
+              <canvas ref={chartRef}></canvas>
             </div>
           </div>
         </div>
@@ -210,9 +192,7 @@ export default function DashboardPage() {
                   <span className={`dash-buyer-rank ${i < 3 ? 'top' : ''}`}>{i + 1}</span>
                   <div className="dash-avatar">{initials(b.name)}</div>
                   <span className="dash-buyer-name">{b.name}</span>
-                  <div className="dash-bar-wrap">
-                    <div className="dash-bar-fill" style={{width:`${(b.count/maxCount)*100}%`}}></div>
-                  </div>
+                  <div className="dash-bar-wrap"><div className="dash-bar-fill" style={{width:`${(b.count/maxCount)*100}%`}}></div></div>
                   <span className="dash-buyer-count">{b.count}x</span>
                   <span className="dash-buyer-total">£{b.total.toFixed(0)}</span>
                 </div>
