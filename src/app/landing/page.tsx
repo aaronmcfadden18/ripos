@@ -8,7 +8,7 @@ export default function LandingPage() {
         <div className="nav-logo">Rip<em>OS</em></div>
         <div className="nav-right">
           <span className="nav-beta">Free beta</span>
-          <a href="/login" className="nav-signin">Sign in</a><a href="/login" className="nav-cta">Sign up free →</a>
+          <a href="/login" onClick={()=>window.location.href="/login"} className="nav-signin">Sign in</a><a href="/login" onClick={()=>window.location.href="/login"} className="nav-cta">Sign up free →</a>
         </div>
       </nav>
 
@@ -17,7 +17,7 @@ export default function LandingPage() {
         <h1 className="hero-headline">Stop guessing.<br/><span className="hero-accent">Know your profit.</span></h1>
         <p className="hero-sub">Whatnot tells you what you earned. RipOS tells you what you actually made — after stock costs, platform fees, and VAT. Import your CSV in 30 seconds.</p>
         <div className="hero-actions">
-          <a href="/login" className="hero-btn-primary">Get started free →</a>
+          <a href="/login" onClick={()=>window.location.href="/login"} className="hero-btn-primary">Get started free →</a>
           <span className="hero-note">No credit card · Free during beta</span>
         </div>
         <div className="hero-preview">
@@ -125,14 +125,14 @@ export default function LandingPage() {
         <div className="section-inner cta-inner">
           <h2 className="cta-title">Know your real profit.<br/>Start today.</h2>
           <p className="cta-sub">Free during beta. No credit card. Built for Whatnot card breakers.</p>
-          <a href="/login" className="hero-btn-primary">Create free account →</a>
+          <a href="/login" onClick={()=>window.location.href="/login"} className="hero-btn-primary">Create free account →</a>
         </div>
       </section>
 
       <footer className="footer">
         <div className="footer-logo">Rip<em>OS</em></div>
         <p className="footer-copy">Built for breakers. Designed to ship.</p>
-        <a href="/login" className="footer-link">Sign in</a>
+        <a href="/login" onClick={()=>window.location.href="/login"} className="footer-link">Sign in</a>
       </footer>
 
       <style>{`
