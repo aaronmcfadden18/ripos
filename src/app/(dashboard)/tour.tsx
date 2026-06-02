@@ -1,49 +1,56 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const STEPS = [
   {
     id: 'import',
     title: 'Import your Whatnot CSV',
     desc: 'Each month, export your earnings from Whatnot and import here. Your streams and sales populate automatically.',
-    position: 'bottom-left',
     target: 'tour-import',
+    placement: 'bottom',
   },
   {
     id: 'new-stream',
     title: 'Log a stream manually',
     desc: 'Going live? Create a stream beforehand to track your inventory costs, platform fees, and true profit.',
-    position: 'bottom-right',
     target: 'tour-new-stream',
+    placement: 'bottom',
   },
   {
-    id: 'turnover',
+    id: 'stats',
     title: 'Your real numbers',
-    desc: 'This is your total turnover, true profit after all costs, and average revenue per stream — not just what Whatnot shows you.',
-    position: 'bottom-left',
+    desc: 'Total turnover, true profit after all costs, and average revenue per stream — not just what Whatnot shows you.',
     target: 'tour-stats',
+    placement: 'bottom',
   },
   {
     id: 'buyers',
     title: 'Know your best customers',
     desc: 'Before every stream, check who your top buyers are. Give them a shoutout — loyal buyers spend more.',
-    position: 'top-left',
     target: 'tour-buyers',
+    placement: 'top',
   },
 ]
 
 export default function Tour({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0)
-  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
+  const [rect, setRect] = useState<DOMRect | null>(null)
+  const tooltipRef = useRef<HTMLDivElement>(null)
 
   const current = STEPS[step]
 
   useEffect(() => {
-    const el = document.getElementById(current.target)
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    setPos({ top: rect.top + window.scrollY, left: rect.left + window.scrollX, width: rect.width })
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const update = () => {
+      const el = document.getElementById(current.target)
+      if (!el) return
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setTimeout(() => {
+        setRect(el.getBoundingClientRect())
+      }, 350)
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
   }, [step])
 
   const next = () => {
@@ -53,36 +60,70 @@ export default function Tour({ onComplete }: { onComplete: () => void }) {
 
   const skip = () => { localStorage.setItem('ripos_tour_done', 'true'); onComplete() }
 
-  const tooltipStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: current.position.startsWith('bottom') ? pos.top + 60 : pos.top - 160,
-    left: current.position.endsWith('left') ? pos.left : pos.left + pos.width - 280,
-    width: 280,
-    zIndex: 1001,
+  const TOOLTIP_W = 300
+  const TOOLTIP_H = 200
+  const GAP = 12
+
+  const getTooltipPos = () => {
+    if (!rect) return { top: '50%', left: '50%' }
+    const vw = window.innerWidth
+    let top: number
+    let left: number
+
+    if (current.placement === 'bottom') {
+      top = rect.bottom + GAP
+    } else {
+      top = rect.top - TOOLTIP_H - GAP
+    }
+
+    // Centre horizontally on the target, clamp to viewport
+    left = rect.left + rect.width / 2 - TOOLTIP_W / 2
+    left = Math.max(12, Math.min(left, vw - TOOLTIP_W - 12))
+
+    return { top, left }
   }
+
+  const { top, left } = getTooltipPos()
 
   return (
     <>
       <div className="tour-overlay" onClick={skip} />
-      <div className="tour-highlight" style={{ top: pos.top - 6, left: pos.left - 6, width: pos.width + 12 }} />
-      <div className="tour-tooltip" style={tooltipStyle}>
-        <div className="tour-tt-head">
-          <span className="tour-tt-step">{step + 1} of {STEPS.length}</span>
-          <button className="tour-tt-skip" onClick={skip}>Skip tour</button>
+      {rect && (
+        <div
+          className="tour-highlight"
+          style={{
+            position: 'fixed',
+            top: rect.top - 6,
+            left: rect.left - 6,
+            width: rect.width + 12,
+            height: rect.height + 12,
+          }}
+        />
+      )}
+      {rect && (
+        <div
+          ref={tooltipRef}
+          className="tour-tooltip"
+          style={{ position: 'fixed', top, left, width: TOOLTIP_W }}
+        >
+          <div className="tour-tt-head">
+            <span className="tour-tt-step">{step + 1} of {STEPS.length}</span>
+            <button className="tour-tt-skip" onClick={skip}>Skip tour</button>
+          </div>
+          <h3 className="tour-tt-title">{current.title}</h3>
+          <p className="tour-tt-desc">{current.desc}</p>
+          <div className="tour-tt-dots">
+            {STEPS.map((_, i) => <div key={i} className={`tour-tt-dot ${i === step ? 'active' : ''}`} />)}
+          </div>
+          <button className="tour-tt-btn" onClick={next}>
+            {step < STEPS.length - 1 ? 'Next →' : 'Finish tour ✓'}
+          </button>
         </div>
-        <h3 className="tour-tt-title">{current.title}</h3>
-        <p className="tour-tt-desc">{current.desc}</p>
-        <div className="tour-tt-dots">
-          {STEPS.map((_, i) => <div key={i} className={`tour-tt-dot ${i === step ? 'active' : ''}`} />)}
-        </div>
-        <button className="tour-tt-btn" onClick={next}>
-          {step < STEPS.length - 1 ? 'Next →' : 'Finish tour ✓'}
-        </button>
-      </div>
+      )}
       <style>{`
-        .tour-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999;cursor:pointer}
-        .tour-highlight{position:absolute;border-radius:10px;border:2px solid #f59e0b;box-shadow:0 0 0 4px rgba(245,158,11,0.2);z-index:1000;pointer-events:none;transition:all 0.3s ease;min-height:40px}
-        .tour-tooltip{background:#18181b;border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
+        .tour-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:999}
+        .tour-highlight{border-radius:10px;border:2px solid #f59e0b;box-shadow:0 0 0 4px rgba(245,158,11,0.15);z-index:1000;pointer-events:none;transition:all 0.25s ease}
+        .tour-tooltip{background:#18181b;border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,0.7);z-index:1001;transition:top 0.25s ease,left 0.25s ease}
         .tour-tt-head{display:flex;align-items:center;justify-content:space-between}
         .tour-tt-step{font-size:11px;color:#f59e0b;text-transform:uppercase;letter-spacing:0.06em;font-family:'DM Mono',monospace}
         .tour-tt-skip{background:none;border:none;color:#52525b;font-size:11px;cursor:pointer;font-family:'DM Mono',monospace}
