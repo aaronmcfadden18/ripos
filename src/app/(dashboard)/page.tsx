@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Tour from './tour'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -12,15 +13,12 @@ export default function DashboardPage() {
   const [sales, setSales] = useState<any[]>([])
   const [inventory, setInventory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [showTour, setShowTour] = useState(false)
 
   useEffect(() => {
     const load = async () => {
-      // Check onboarding first
       const onboarded = localStorage.getItem('ripos_onboarded')
-      if (!onboarded) {
-        router.push('/onboarding')
-        return
-      }
+      if (!onboarded) { router.push('/onboarding'); return }
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
@@ -33,6 +31,8 @@ export default function DashboardPage() {
       setSales(sa ?? [])
       setInventory(inv ?? [])
       setLoading(false)
+      const tourDone = localStorage.getItem('ripos_tour_done')
+      if (!tourDone) setTimeout(() => setShowTour(true), 600)
     }
     load()
   }, [])
@@ -45,7 +45,6 @@ export default function DashboardPage() {
   const avgPerStream = streams.length > 0 ? totalRevenue / streams.length : 0
   const totalSalesRevenue = sales.reduce((a, s) => a + (s.sale_amount ?? 0), 0)
   const lowStock = inventory.filter(i => (i.quantity ?? 0) <= 2).length
-  const toShip = sales.filter(s => !['shipped', 'delivered'].includes(s.shipping_status ?? '')).length
 
   const buyerMap = new Map<string, { count: number; total: number }>()
   for (const s of sales) {
@@ -71,10 +70,7 @@ export default function DashboardPage() {
       chartInstance.current = new Chart(chartRef.current, {
         type: 'bar',
         data: {
-          labels: chartStreams.map(s => {
-            if (!s.stream_date) return '—'
-            return new Date(s.stream_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-          }),
+          labels: chartStreams.map(s => s.stream_date ? new Date(s.stream_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'),
           datasets: [
             { label: 'Revenue', data: chartStreams.map(s => s.revenue ?? 0), backgroundColor: 'rgba(245,158,11,0.7)', borderRadius: 4, borderSkipped: false },
             { label: 'Profit', data: chartStreams.map(s => (s.revenue ?? 0) - (s.inventory_cost ?? 0)), backgroundColor: 'rgba(74,222,128,0.6)', borderRadius: 4, borderSkipped: false }
@@ -95,23 +91,24 @@ export default function DashboardPage() {
   }, [loading, streams.length])
 
   const initials = (name: string) => name.slice(0, 2).toUpperCase()
-
   if (loading) return null
 
   return (
     <div className="dash">
+      {showTour && <Tour onComplete={() => setShowTour(false)} />}
+
       <div className="dash-header">
         <div>
           <div className="dash-logo">Rip<em>OS</em></div>
           <h1 className="dash-title">Dashboard</h1>
         </div>
         <div style={{display:'flex',gap:'10px'}}>
-          <Link href="/streams/import" className="dash-import">↑ Import CSV</Link>
-          <Link href="/streams/new" className="dash-cta">+ New stream</Link>
+          <Link href="/streams/import" className="dash-import" id="tour-import">↑ Import CSV</Link>
+          <Link href="/streams/new" className="dash-cta" id="tour-new-stream">+ New stream</Link>
         </div>
       </div>
 
-      <div className="dash-stats">
+      <div className="dash-stats" id="tour-stats">
         <div className="dash-stat">
           <p className="dash-stat-label">Total turnover</p>
           <p className="dash-stat-val">£{totalRevenue.toLocaleString('en-GB',{minimumFractionDigits:0})}</p>
@@ -178,7 +175,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="dash-card">
+        <div className="dash-card" id="tour-buyers">
           <div className="dash-card-head">
             <span className="dash-card-title">Top buyers</span>
             <Link href="/sales" className="dash-link">View all →</Link>
@@ -221,7 +218,7 @@ export default function DashboardPage() {
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
         body{background:#0e0e0f;color:#d4d4d8;font-family:'DM Mono',monospace}
-        .dash{max-width:960px;margin:0 auto;padding:32px 24px;display:flex;flex-direction:column;gap:18px}
+        .dash{max-width:960px;margin:0 auto;padding:32px 24px;display:flex;flex-direction:column;gap:18px;position:relative}
         .dash-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
         .dash-logo{font-size:16px;font-weight:500;color:#f4f4f5;margin-bottom:4px}
         .dash-logo em{font-style:normal;color:#f59e0b}
