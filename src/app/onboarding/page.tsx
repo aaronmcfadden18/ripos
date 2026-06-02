@@ -17,6 +17,7 @@ type StreamSummary = {
 export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
+  const [trackingMethod, setTrackingMethod] = useState('')
   const [isMobile, setIsMobile] = useState(false)
   const [streams, setStreams] = useState<StreamSummary[]>([])
   const [fileName, setFileName] = useState('')
@@ -152,7 +153,7 @@ export default function OnboardingPage() {
           ))}
         </div>
 
-        {/* Step 1 — Welcome (same for all) */}
+        {/* Step 1 — How do you track? */}
         {step === 1 && (
           <div className="ob-card ob-fade">
             <div className="ob-logo-wrap">
@@ -166,7 +167,16 @@ export default function OnboardingPage() {
               <div className="ob-feature"><span className="ob-feature-icon">📦</span><div><p className="ob-feature-title">Inventory management</p><p className="ob-feature-desc">Track stock levels and cost per box instantly</p></div></div>
               <div className="ob-feature"><span className="ob-feature-icon">{isMobile ? '⚡' : '📥'}</span><div><p className="ob-feature-title">{isMobile ? 'Quick stock logging' : 'Whatnot CSV import'}</p><p className="ob-feature-desc">{isMobile ? 'Log purchases in 15 seconds on your phone' : 'Pull in all your streams and sales in one click'}</p></div></div>
             </div>
-            <button className="ob-btn" onClick={() => setStep(2)}>Get started →</button>
+            <div style={{display:'flex',flexDirection:'column',gap:'10px',width:'100%'}}>
+              {['Spreadsheet','I don't track','Notes app / memory','Accountant / other software'].map(opt => (
+                <button key={opt} className={trackingMethod===opt?'ob-btn':'ob-btn-ghost'} onClick={()=>setTrackingMethod(opt)} style={{textAlign:'left',padding:'12px 16px'}}>
+                  {trackingMethod===opt?'✓ ':''}{opt}
+                </button>
+              ))}
+              </div>
+              <button className="ob-btn" onClick={() => setStep(2)} disabled={!trackingMethod} style={{opacity:trackingMethod?1:0.4}}>
+                Continue →
+              </button>
             <button className="ob-skip" onClick={skip}>Skip setup</button>
           </div>
         )}

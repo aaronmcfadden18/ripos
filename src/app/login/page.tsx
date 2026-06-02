@@ -53,8 +53,8 @@ export default function LoginPage() {
       <section className="land-hero">
         <div className="land-tag">Built for Whatnot card breakers</div>
         <h1 className="land-headline">Stop guessing.<br/><span className="land-accent">Know your profit.</span></h1>
-        <p className="land-sub">Whatnot tells you what you earned. RipOS tells you what you actually made — after stock costs, platform fees, and VAT. Import your CSV in 30 seconds.</p>
-        <button className="land-cta land-cta-lg" onClick={()=>{setShowAuth(true);setMode('signup')}}>Get started free →</button>
+        <p className="land-sub">Whatnot tells you what you earned. RipOS tells you what you actually made — after stock costs, platform fees, and VAT. See what you actually made — in 30 seconds.</p>
+        <button className="land-cta land-cta-lg" onClick={()=>{setShowAuth(true);setMode('signup')}}>See your real profit →</button>
         <p className="land-note">No credit card · Free during beta</p>
         <div className="land-preview">
           <div className="land-preview-card">
@@ -72,10 +72,10 @@ export default function LoginPage() {
           <h2 className="land-title">Sound familiar?</h2>
           <div className="land-problems">
             {[
-              {icon:'📊',text:'You check Whatnot earnings but have no idea what you actually profited after buying stock'},
-              {icon:'📦',text:"You forget what you paid for boxes because you didn't log it immediately"},
-              {icon:'🧾',text:"Tax time arrives and you're scrambling through spreadsheets"},
-              {icon:'⏰',text:'You spend 30 mins before every stream working out what price to break even'},
+              {icon:'📊',text:'You check Whatnot and see £2,800 — but have no idea what you actually kept after buying stock'},
+              {icon:'📦',text:"You bought boxes three weeks ago and can't remember what you paid for them"},
+              {icon:'🧾',text:"Tax time arrives and you're digging through bank statements and DMs"},
+              {icon:'⏰',text:'You price packs by gut feel and hope you made money after fees'},
             ].map((p,i)=>(
               <div key={i} className="land-problem">
                 <span style={{fontSize:'22px'}}>{p.icon}</span>
@@ -98,9 +98,9 @@ export default function LoginPage() {
       </section>
       <section className="land-section land-cta-section">
         <div className="land-inner" style={{alignItems:'center',textAlign:'center'}}>
-          <h2 className="land-title">Know your real profit.<br/>Start today.</h2>
+          <h2 className="land-title">Stop guessing.<br/>Know your numbers.</h2>
           <p className="land-sub">Free during beta. No credit card. Built for Whatnot card breakers.</p>
-          <button className="land-cta land-cta-lg" onClick={()=>{setShowAuth(true);setMode('signup')}}>Create free account →</button>
+          <button className="land-cta land-cta-lg" onClick={()=>{setShowAuth(true);setMode('signup')}}>See your real profit →</button>
         </div>
       </section>
       <footer className="land-footer">
