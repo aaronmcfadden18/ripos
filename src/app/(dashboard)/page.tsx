@@ -168,7 +168,7 @@ export default function DashboardPage() {
                   <span className="dash-insight-icon">{insightIcon(insight.type)}</span>
                   <div>
                     <p className="dash-insight-headline">{insight.headline}</p>
-                    <p className="dash-insight-detail">{insight.detail}</p>
+                    <p className="dash-insight-detail">{insight.detail}</p><div className="dash-insight-actions">{insight.type === "buyer" && <a href="/sales" className="dash-insight-btn">View sales →</a>}{insight.type === "performance" && <a href="/streams/new" className="dash-insight-btn">Log a stream →</a>}{insight.type === "inventory" && <a href="/inventory" className="dash-insight-btn">View inventory →</a>}{insight.type === "opportunity" && <a href="/streams/new" className="dash-insight-btn">Take action →</a>}</div>
                   </div>
                 </div>
               ))}
@@ -311,7 +311,7 @@ export default function DashboardPage() {
         .dash-insight-row:last-child{border-bottom:none}
         .dash-insight-icon{font-size:18px;flex-shrink:0;margin-top:1px}
         .dash-insight-headline{font-size:13px;color:#f4f4f5;font-weight:500;margin-bottom:3px}
-        .dash-insight-detail{font-size:12px;color:#a1a1aa;line-height:1.5}
+        .dash-insight-detail{font-size:12px;color:#a1a1aa;line-height:1.5;margin-bottom:8px}.dash-insight-actions{margin-top:4px}.dash-insight-btn{font-size:11px;color:#f59e0b;text-decoration:none;border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:4px 10px;font-family:"DM Mono",monospace}.dash-insight-btn:hover{background:rgba(245,158,11,0.08)}
         @media(max-width:640px){.dash-grid2{grid-template-columns:1fr}.dash-stats{grid-template-columns:1fr 1fr}}
       `}</style>
     </div>
