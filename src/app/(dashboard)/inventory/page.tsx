@@ -6,6 +6,7 @@ import Link from 'next/link'
 export default function InventoryPage() {
   const [items, setItems] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
+  const [showQuick, setShowQuick] = useState(false)
   const [name, setName] = useState('')
   const [set, setSet] = useState('')
   const [qty, setQty] = useState('1')
@@ -13,6 +14,14 @@ export default function InventoryPage() {
   const [price, setPrice] = useState('')
   const [packsPerBox, setPacksPerBox] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Quick add state
+  const [qName, setQName] = useState('')
+  const [qQty, setQQty] = useState('1')
+  const [qTotal, setQTotal] = useState('')
+  const [qPacks, setQPacks] = useState('')
+  const [qSaving, setQSaving] = useState(false)
+  const [qDone, setQDone] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -46,6 +55,55 @@ export default function InventoryPage() {
     setSaving(false)
   }
 
+  const handleQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!qName.trim() || !qTotal) return
+    setQSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const qtyNum = parseInt(qQty) || 1
+    const totalPaid = parseFloat(qTotal) || 0
+    const costPerUnit = totalPaid / qtyNum
+    const packsNum = parseInt(qPacks) || null
+
+    // Check if product already exists
+    const existing = items.find(i => i.product_name.toLowerCase() === qName.trim().toLowerCase())
+
+    if (existing) {
+      // Update existing — weighted average cost
+      const existingQty = existing.quantity ?? 0
+      const existingCost = existing.cost_per_unit ?? 0
+      const newQty = existingQty + qtyNum
+      const weightedCost = ((existingQty * existingCost) + (qtyNum * costPerUnit)) / newQty
+      const supabase2 = createClient()
+      const { data: updated } = await supabase2.from('inventory_items')
+        .update({ quantity: newQty, cost_per_unit: Math.round(weightedCost * 100) / 100 })
+        .eq('id', existing.id)
+        .select().single()
+      if (updated) setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
+    } else {
+      // Create new
+      const { data } = await supabase.from('inventory_items').insert({
+        user_id: user.id,
+        product_name: qName.trim(),
+        quantity: qtyNum,
+        cost_per_unit: Math.round(costPerUnit * 100) / 100,
+        packs_per_box: packsNum,
+      }).select().single()
+      if (data) setItems(prev => [data, ...prev])
+    }
+
+    setQDone(true)
+    setTimeout(() => {
+      setQDone(false)
+      setQName(''); setQQty('1'); setQTotal(''); setQPacks('')
+      setShowQuick(false)
+    }, 1500)
+    setQSaving(false)
+  }
+
   const handleQty = async (id: string, delta: number) => {
     const supabase = createClient()
     const item = items.find(i => i.id === id)
@@ -62,6 +120,8 @@ export default function InventoryPage() {
   }
 
   const totalValue = items.reduce((a, i) => a + (i.quantity ?? 0) * (i.cost_per_unit ?? 0), 0)
+  const qCostPerUnit = qName && qTotal && qQty ? (parseFloat(qTotal) / (parseInt(qQty) || 1)) : null
+  const isExisting = items.find(i => i.product_name.toLowerCase() === qName.trim().toLowerCase())
 
   return (
     <div className="iv">
@@ -71,8 +131,76 @@ export default function InventoryPage() {
           <h1 className="iv-title">Inventory</h1>
           <p className="iv-sub">{items.length} products · £{totalValue.toLocaleString('en-GB', { minimumFractionDigits: 0 })} stock value</p>
         </div>
-        <button className="iv-cta" onClick={() => setShowForm(v => !v)}>{showForm ? '✕ Close' : '+ Add product'}</button>
+        <div style={{display:'flex',gap:8}}>
+          <button className="iv-quick-btn" onClick={() => { setShowQuick(true); setShowForm(false) }}>⚡ Quick add</button>
+          <button className="iv-cta" onClick={() => { setShowForm(v => !v); setShowQuick(false) }}>{showForm ? '✕ Close' : '+ Full add'}</button>
+        </div>
       </div>
+
+      {/* Quick Add Modal */}
+      {showQuick && (
+        <div className="iv-modal-overlay" onClick={() => setShowQuick(false)}>
+          <div className="iv-modal" onClick={e => e.stopPropagation()}>
+            {qDone ? (
+              <div className="iv-quick-done">
+                <div className="iv-quick-done-icon">✓</div>
+                <p className="iv-quick-done-text">{isExisting ? 'Stock updated!' : 'Added to inventory!'}</p>
+              </div>
+            ) : (
+              <>
+                <div className="iv-modal-head">
+                  <h2 className="iv-modal-title">⚡ Quick add purchase</h2>
+                  <button className="iv-modal-close" onClick={() => setShowQuick(false)}>✕</button>
+                </div>
+                <p className="iv-modal-sub">Log what you just bought in seconds</p>
+                <form onSubmit={handleQuickAdd} className="iv-quick-form">
+                  <div className="iv-field">
+                    <label className="iv-label">Product *</label>
+                    <input className="iv-input iv-input-lg" value={qName} onChange={e => setQName(e.target.value)}
+                      placeholder="e.g. One Piece OP-09 Box" required autoFocus
+                      list="iv-products-list" />
+                    <datalist id="iv-products-list">
+                      {items.map(i => <option key={i.id} value={i.product_name} />)}
+                    </datalist>
+                    {isExisting && <p className="iv-quick-hint">✓ Existing product — will update stock + recalculate avg cost</p>}
+                  </div>
+                  <div className="iv-quick-row">
+                    <div className="iv-field">
+                      <label className="iv-label">Boxes bought</label>
+                      <input className="iv-input iv-input-lg" type="number" min="1" value={qQty}
+                        onChange={e => setQQty(e.target.value)} />
+                    </div>
+                    <div className="iv-field">
+                      <label className="iv-label">Total paid (£)</label>
+                      <input className="iv-input iv-input-lg" type="number" min="0" step="0.01"
+                        value={qTotal} onChange={e => setQTotal(e.target.value)} placeholder="0.00" required />
+                    </div>
+                  </div>
+                  {!isExisting && (
+                    <div className="iv-field">
+                      <label className="iv-label">Packs per box <span className="iv-label-opt">(optional)</span></label>
+                      <input className="iv-input iv-input-lg" type="number" min="0" value={qPacks}
+                        onChange={e => setQPacks(e.target.value)} placeholder="e.g. 24" />
+                    </div>
+                  )}
+                  {qCostPerUnit !== null && (
+                    <div className="iv-quick-calc">
+                      <span>Cost per box</span>
+                      <span className="iv-quick-calc-val">£{qCostPerUnit.toFixed(2)}</span>
+                      {qPacks && parseInt(qPacks) > 0 && (
+                        <span className="iv-quick-calc-pack">· £{(qCostPerUnit / parseInt(qPacks)).toFixed(2)}/pack</span>
+                      )}
+                    </div>
+                  )}
+                  <button type="submit" className="iv-submit iv-submit-full" disabled={qSaving || !qName.trim() || !qTotal}>
+                    {qSaving ? 'Saving…' : isExisting ? `Update stock (+${qQty} boxes)` : 'Add to inventory'}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleAdd} className="iv-form">
@@ -105,11 +233,6 @@ export default function InventoryPage() {
           {cost && packsPerBox && parseInt(packsPerBox) > 0 && (
             <div className="iv-pack-hint">
               💡 Cost per pack: <strong>£{(parseFloat(cost) / parseInt(packsPerBox)).toFixed(2)}</strong>
-              {price && parseFloat(price) > 0 && (
-                <span> · Profit per pack if sold at £{price}: <strong className={parseFloat(price) - parseFloat(cost)/parseInt(packsPerBox) >= 0 ? 'green' : 'red'}>
-                  £{(parseFloat(price) - parseFloat(cost) / parseInt(packsPerBox)).toFixed(2)}
-                </strong></span>
-              )}
             </div>
           )}
           <div className="iv-form-actions">
@@ -119,10 +242,10 @@ export default function InventoryPage() {
         </form>
       )}
 
-      {items.length === 0 && !showForm ? (
+      {items.length === 0 && !showForm && !showQuick ? (
         <div className="iv-empty">
           <p>No inventory yet.</p>
-          <button className="iv-cta" onClick={() => setShowForm(true)}>+ Add your first product</button>
+          <button className="iv-quick-btn" onClick={() => setShowQuick(true)}>⚡ Quick add your first purchase</button>
         </div>
       ) : (
         <div className="iv-grid">
@@ -141,13 +264,11 @@ export default function InventoryPage() {
                   </div>
                   <span className={`iv-badge iv-${status.cls}`}>{status.label}</span>
                 </div>
-
                 <div className="iv-item-stats">
                   <div><p className="iv-stat-label">Cost/box</p><p className="iv-stat-val">{item.cost_per_unit ? '£' + item.cost_per_unit : '—'}</p></div>
                   <div><p className="iv-stat-label">Sell price</p><p className="iv-stat-val">{item.suggested_price ? '£' + item.suggested_price : '—'}</p></div>
                   <div><p className="iv-stat-label">Stock value</p><p className="iv-stat-val">{item.cost_per_unit ? '£' + (q * item.cost_per_unit).toFixed(0) : '—'}</p></div>
                 </div>
-
                 {packs && (
                   <div className="iv-pack-section">
                     <div className="iv-pack-row">
@@ -157,7 +278,6 @@ export default function InventoryPage() {
                     </div>
                   </div>
                 )}
-
                 <div className="iv-item-foot">
                   <div className="iv-qty">
                     <button className="iv-qty-btn" onClick={() => handleQty(item.id, -1)} disabled={q === 0}>−</button>
@@ -178,10 +298,30 @@ export default function InventoryPage() {
         body{background:#0e0e0f;color:#d4d4d8;font-family:'DM Mono',monospace}
         .iv{max-width:1000px;margin:0 auto;padding:32px 24px;display:flex;flex-direction:column;gap:20px}
         .iv-back{font-size:12px;color:#f59e0b;text-decoration:none;display:block;margin-bottom:8px}
-        .iv-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+        .iv-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
         .iv-title{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;color:#f4f4f5;margin-bottom:4px}
         .iv-sub{font-size:13px;color:#52525b}
-        .iv-cta{background:#f59e0b;color:#0e0e0f;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:500;font-family:'DM Mono',monospace;cursor:pointer}
+        .iv-cta{background:#f59e0b;color:#0e0e0f;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:500;font-family:'DM Mono',monospace;cursor:pointer;white-space:nowrap}
+        .iv-quick-btn{background:none;border:1px solid rgba(245,158,11,0.4);color:#f59e0b;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:500;font-family:'DM Mono',monospace;cursor:pointer;white-space:nowrap}
+        .iv-quick-btn:hover{background:rgba(245,158,11,0.08)}
+        .iv-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+        .iv-modal{background:#18181b;border:1px solid rgba(245,158,11,0.25);border-radius:16px;padding:24px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:16px}
+        .iv-modal-head{display:flex;align-items:center;justify-content:space-between}
+        .iv-modal-title{font-size:16px;color:#f4f4f5;font-weight:500}
+        .iv-modal-close{background:none;border:none;color:#52525b;font-size:18px;cursor:pointer;padding:4px}
+        .iv-modal-sub{font-size:12px;color:#52525b;margin-top:-8px}
+        .iv-quick-form{display:flex;flex-direction:column;gap:14px}
+        .iv-quick-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .iv-quick-hint{font-size:11px;color:#4ade80;margin-top:4px}
+        .iv-quick-calc{display:flex;align-items:center;gap:10px;background:#0e0e0f;border-radius:8px;padding:10px 14px;font-size:13px;color:#71717a}
+        .iv-quick-calc-val{color:#f59e0b;font-weight:500}
+        .iv-quick-calc-pack{color:#52525b;font-size:12px}
+        .iv-quick-done{display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px 0}
+        .iv-quick-done-icon{width:48px;height:48px;border-radius:50%;background:rgba(74,222,128,0.1);border:2px solid rgba(74,222,128,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;color:#4ade80}
+        .iv-quick-done-text{font-size:14px;color:#4ade80}
+        .iv-submit-full{width:100%;min-height:46px;font-size:14px}
+        .iv-input-lg{font-size:15px;padding:11px 14px}
+        .iv-label-opt{color:#3f3f46;font-size:11px}
         .iv-form{background:#18181b;border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px}
         .iv-form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
         .iv-wide{grid-column:1/-1}
@@ -191,8 +331,6 @@ export default function InventoryPage() {
         .iv-input:focus{border-color:rgba(245,158,11,0.5)}
         .iv-pack-hint{font-size:12px;color:#71717a;background:#0e0e0f;border-radius:8px;padding:10px 14px;border:1px solid rgba(245,158,11,0.15)}
         .iv-pack-hint strong{color:#f59e0b}
-        .iv-pack-hint .green{color:#4ade80}
-        .iv-pack-hint .red{color:#f87171}
         .iv-form-actions{display:flex;gap:10px;justify-content:flex-end}
         .iv-ghost{background:none;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 18px;font-family:'DM Mono',monospace;font-size:13px;color:#71717a;cursor:pointer}
         .iv-submit{background:#f59e0b;color:#0e0e0f;border:none;border-radius:8px;padding:9px 20px;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;cursor:pointer}
@@ -220,7 +358,7 @@ export default function InventoryPage() {
         .iv-qty-val{font-size:13px;font-weight:500;color:#f4f4f5;min-width:70px;text-align:center;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06);height:32px;display:flex;align-items:center;justify-content:center}
         .iv-del{background:none;border:none;color:#3f3f46;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;padding:4px 8px;border-radius:5px}
         .iv-del:hover{color:#f87171;background:rgba(248,113,113,0.08)}
-        @media(max-width:640px){.iv-form-grid{grid-template-columns:1fr 1fr}}
+        @media(max-width:640px){.iv-form-grid{grid-template-columns:1fr 1fr}.iv-modal{max-width:100%;margin:0}}
       `}</style>
     </div>
   )
