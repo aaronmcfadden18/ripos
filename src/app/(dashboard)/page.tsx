@@ -154,7 +154,7 @@ export default function DashboardPage() {
         <div className="dash-card dash-insights-card">
           <div className="dash-card-head">
             <span className="dash-card-title">AI insights</span>
-            <span className="dash-insight-badge">✦ Claude</span>
+            
           </div>
           {insightsLoading ? (
             <div className="dash-insight-loading">
