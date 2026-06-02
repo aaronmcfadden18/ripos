@@ -19,9 +19,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const load = async () => {
+      const onboarded = localStorage.getItem('ripos_onboarded')
+      if (!onboarded) { router.push('/onboarding'); return }
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { window.location.replace('/login'); return }
+      if (!user) { window.location.replace('/landing'); return }
       const [{ data: st }, { data: sa }, { data: inv }] = await Promise.all([
         supabase.from('streams').select('*').eq('user_id', user.id).order('stream_date', { ascending: true }),
         supabase.from('sales').select('*').eq('user_id', user.id),
@@ -106,11 +108,7 @@ export default function DashboardPage() {
   const initials = (name: string) => name.slice(0, 2).toUpperCase()
   const insightIcon = (type: string) => type === 'performance' ? '📊' : type === 'buyer' ? '👥' : type === 'inventory' ? '📦' : '💡'
 
-  if (loading) return (
-    <div style={{minHeight:'100vh',background:'#0e0e0f',display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <div style={{color:'#f59e0b',fontFamily:'DM Mono,monospace',fontSize:'14px'}}>Loading...</div>
-    </div>
-  )
+  if (loading) return null
 
   return (
     <div className="dash">
@@ -123,7 +121,7 @@ export default function DashboardPage() {
         </div>
         <div style={{display:'flex',gap:'10px'}}>
           <Link href="/streams/import" className="dash-import" id="tour-import">↑ Import CSV</Link>
-          <Link href="/streams/new" className="dash-cta" id="tour-new-stream">+ New stream</Link><button className="dash-signout" onClick={async()=>{const {createClient}=await import("@/lib/supabase/client");const sb=createClient();sb.auth.signOut().then(()=>{ window.location.href="/login" })}}>Sign out</button>
+          <Link href="/streams/new" className="dash-cta" id="tour-new-stream">+ New stream</Link><button className="dash-signout" onClick={async()=>{const {createClient}=await import("@/lib/supabase/client");const sb=createClient();sb.auth.signOut().then(()=>{ window.location.href="/landing" })}}>Sign out</button>
         </div>
       </div>
 
