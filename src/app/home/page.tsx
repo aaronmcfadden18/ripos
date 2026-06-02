@@ -8,7 +8,7 @@ export default function LandingPage() {
         <div className="nav-logo">Rip<em>OS</em></div>
         <div className="nav-right">
           <span className="nav-beta">Free beta</span>
-          <Link href="/login" className="nav-cta">Sign up free →</Link>
+          <Link href="/login" className="nav-signin">Sign in</Link><Link href="/login" className="nav-cta">Sign up free →</Link>
         </div>
       </nav>
 
@@ -145,7 +145,7 @@ export default function LandingPage() {
         .nav-logo em{font-style:normal;color:#f59e0b}
         .nav-right{display:flex;align-items:center;gap:16px}
         .nav-beta{font-size:11px;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:20px;padding:3px 10px}
-        .nav-cta{background:#f59e0b;color:#0e0e0f;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:500;text-decoration:none;font-family:'DM Mono',monospace}
+        .nav-signin{font-size:13px;color:#a1a1aa;text-decoration:none;font-family:"DM Mono",monospace}.nav-signin:hover{color:#f4f4f5}.nav-cta{background:#f59e0b;color:#0e0e0f;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:500;text-decoration:none;font-family:'DM Mono',monospace}
         .nav-cta:hover{background:#d97706}
         .hero{max-width:1100px;margin:0 auto;width:100%;padding:80px 24px 60px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:24px}
         .hero-tag{font-size:12px;color:#f59e0b;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:20px;padding:5px 14px;text-transform:uppercase;letter-spacing:0.08em}
