@@ -121,7 +121,7 @@ export default function DashboardPage() {
         </div>
         <div style={{display:'flex',gap:'10px'}}>
           <Link href="/streams/import" className="dash-import" id="tour-import">↑ Import CSV</Link>
-          <Link href="/streams/new" className="dash-cta" id="tour-new-stream">+ New stream</Link><button className="dash-signout" onClick={async()=>{const {createClient}=await import("@/lib/supabase/client");const sb=createClient();await sb.auth.signOut();window.location.href="/dashboard-home"}}>Sign out</button>
+          <Link href="/streams/new" className="dash-cta" id="tour-new-stream">+ New stream</Link><button className="dash-signout" onClick={async()=>{const {createClient}=await import("@/lib/supabase/client");const sb=createClient();await sb.auth.signOut();window.location.href="/home"}}>Sign out</button>
         </div>
       </div>
 
