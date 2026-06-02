@@ -14,6 +14,8 @@ export default function DashboardPage() {
   const [inventory, setInventory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showTour, setShowTour] = useState(false)
+  const [insights, setInsights] = useState<any[]>([])
+  const [insightsLoading, setInsightsLoading] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -33,6 +35,19 @@ export default function DashboardPage() {
       setLoading(false)
       const tourDone = localStorage.getItem('ripos_tour_done')
       if (!tourDone) setTimeout(() => setShowTour(true), 600)
+
+      // Fetch AI insights
+      if ((st ?? []).length > 0 || (sa ?? []).length > 0) {
+        setInsightsLoading(true)
+        fetch('/api/insights', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ streams: st ?? [], sales: sa ?? [], inventory: inv ?? [] })
+        })
+          .then(r => r.json())
+          .then(d => { setInsights(d.insights ?? []); setInsightsLoading(false) })
+          .catch(() => setInsightsLoading(false))
+      }
     }
     load()
   }, [])
@@ -91,6 +106,8 @@ export default function DashboardPage() {
   }, [loading, streams.length])
 
   const initials = (name: string) => name.slice(0, 2).toUpperCase()
+  const insightIcon = (type: string) => type === 'performance' ? '📊' : type === 'buyer' ? '👥' : type === 'inventory' ? '📦' : '💡'
+
   if (loading) return null
 
   return (
@@ -132,6 +149,33 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {(insightsLoading || insights.length > 0) && (
+        <div className="dash-card dash-insights-card">
+          <div className="dash-card-head">
+            <span className="dash-card-title">AI insights</span>
+            <span className="dash-insight-badge">✦ Claude</span>
+          </div>
+          {insightsLoading ? (
+            <div className="dash-insight-loading">
+              <div className="dash-insight-spinner" />
+              <span>Analysing your business...</span>
+            </div>
+          ) : (
+            <div style={{display:'flex',flexDirection:'column'}}>
+              {insights.map((insight: any, i: number) => (
+                <div key={i} className="dash-insight-row">
+                  <span className="dash-insight-icon">{insightIcon(insight.type)}</span>
+                  <div>
+                    <p className="dash-insight-headline">{insight.headline}</p>
+                    <p className="dash-insight-detail">{insight.detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {chartStreams.length > 0 && (
         <div className="dash-card">
@@ -258,32 +302,16 @@ export default function DashboardPage() {
         .dash-nav-item:hover{border-color:rgba(255,255,255,0.15)}
         .dash-nav-label{font-size:13px;color:#a1a1aa}
         .dash-nav-sub{font-size:11px;color:#3f3f46}
-        
-        .dash-insights{border-color:rgba(245,158,11,0.2)}
+        .dash-insights-card{border-color:rgba(245,158,11,0.25)}
         .dash-insight-badge{font-size:10px;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:20px;padding:2px 8px}
         .dash-insight-loading{display:flex;align-items:center;gap:10px;padding:16px;font-size:13px;color:#52525b}
         .dash-insight-spinner{width:16px;height:16px;border:2px solid rgba(245,158,11,0.2);border-top-color:#f59e0b;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
         @keyframes spin{to{transform:rotate(360deg)}}
-        .dash-insights-list{display:flex;flex-direction:column;gap:0}
-        .dash-insight-item{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.04)}
-        .dash-insight-item:last-child{border-bottom:none}
+        .dash-insight-row{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.04)}
+        .dash-insight-row:last-child{border-bottom:none}
         .dash-insight-icon{font-size:18px;flex-shrink:0;margin-top:1px}
         .dash-insight-headline{font-size:13px;color:#f4f4f5;font-weight:500;margin-bottom:3px}
         .dash-insight-detail{font-size:12px;color:#a1a1aa;line-height:1.5}
-
-        
-        .dash-insights{border-color:rgba(245,158,11,0.2)}
-        .dash-insight-badge{font-size:10px;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:20px;padding:2px 8px}
-        .dash-insight-loading{display:flex;align-items:center;gap:10px;padding:16px;font-size:13px;color:#52525b}
-        .dash-insight-spinner{width:16px;height:16px;border:2px solid rgba(245,158,11,0.2);border-top-color:#f59e0b;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        .dash-insights-list{display:flex;flex-direction:column;gap:0}
-        .dash-insight-item{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.04)}
-        .dash-insight-item:last-child{border-bottom:none}
-        .dash-insight-icon{font-size:18px;flex-shrink:0;margin-top:1px}
-        .dash-insight-headline{font-size:13px;color:#f4f4f5;font-weight:500;margin-bottom:3px}
-        .dash-insight-detail{font-size:12px;color:#a1a1aa;line-height:1.5}
-
         @media(max-width:640px){.dash-grid2{grid-template-columns:1fr}.dash-stats{grid-template-columns:1fr 1fr}}
       `}</style>
     </div>
