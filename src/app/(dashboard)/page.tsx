@@ -121,7 +121,7 @@ export default function DashboardPage() {
         </div>
         <div style={{display:'flex',gap:'10px'}}>
           <Link href="/streams/import" className="dash-import" id="tour-import">↑ Import CSV</Link>
-          <Link href="/streams/new" className="dash-cta" id="tour-new-stream">+ New stream</Link>
+          <Link href="/streams/new" className="dash-cta" id="tour-new-stream">+ New stream</Link><button className="dash-signout" onClick={async()=>{const {createClient}=await import("@/lib/supabase/client");const sb=createClient();await sb.auth.signOut();window.location.href="/home"}}>Sign out</button>
         </div>
       </div>
 
@@ -301,7 +301,7 @@ export default function DashboardPage() {
         .dash-nav-item{background:#18181b;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;text-decoration:none;display:flex;flex-direction:column;gap:4px}
         .dash-nav-item:hover{border-color:rgba(255,255,255,0.15)}
         .dash-nav-label{font-size:13px;color:#a1a1aa}
-        .dash-nav-sub{font-size:11px;color:#3f3f46}
+        .dash-nav-sub{font-size:11px;color:#3f3f46}.dash-signout{background:none;border:none;color:#3f3f46;font-size:12px;cursor:pointer;font-family:"DM Mono",monospace;padding:9px 0}.dash-signout:hover{color:#f87171}
         .dash-insights-card{border-color:rgba(245,158,11,0.25)}
         .dash-insight-badge{font-size:10px;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:20px;padding:2px 8px}
         .dash-insight-loading{display:flex;align-items:center;gap:10px;padding:16px;font-size:13px;color:#52525b}
