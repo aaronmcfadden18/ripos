@@ -174,7 +174,14 @@ export default function OnboardingPage() {
                 </button>
               ))}
               </div>
-              <button className="ob-btn" onClick={() => setStep(2)} disabled={!trackingMethod} style={{opacity:trackingMethod?1:0.4}}>
+              <button className="ob-btn" onClick={async () => {
+                const supabase = createClient()
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) {
+                  await supabase.from('user_profiles').upsert({ id: user.id, tracking_method: trackingMethod })
+                }
+                setStep(2)
+              }} disabled={!trackingMethod} style={{opacity:trackingMethod?1:0.4}}>
                 Continue →
               </button>
             <button className="ob-skip" onClick={skip}>Skip setup</button>
