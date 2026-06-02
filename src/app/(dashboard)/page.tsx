@@ -19,8 +19,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const load = async () => {
-      const onboarded = localStorage.getItem('ripos_onboarded')
-      if (!onboarded) { router.push('/onboarding'); return }
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { window.location.replace('/login'); return }
