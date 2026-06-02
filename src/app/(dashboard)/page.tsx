@@ -13,7 +13,6 @@ export default function DashboardPage() {
   const [sales, setSales] = useState<any[]>([])
   const [inventory, setInventory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [authChecked, setAuthChecked] = useState(false)
   const [showTour, setShowTour] = useState(false)
   const [insights, setInsights] = useState<any[]>([])
   const [insightsLoading, setInsightsLoading] = useState(false)
@@ -25,7 +24,6 @@ export default function DashboardPage() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { window.location.replace('/login'); return }
-      setAuthChecked(true)
       const [{ data: st }, { data: sa }, { data: inv }] = await Promise.all([
         supabase.from('streams').select('*').eq('user_id', user.id).order('stream_date', { ascending: true }),
         supabase.from('sales').select('*').eq('user_id', user.id),
