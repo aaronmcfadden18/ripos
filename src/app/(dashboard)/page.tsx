@@ -106,7 +106,11 @@ export default function DashboardPage() {
   const initials = (name: string) => name.slice(0, 2).toUpperCase()
   const insightIcon = (type: string) => type === 'performance' ? '📊' : type === 'buyer' ? '👥' : type === 'inventory' ? '📦' : '💡'
 
-  if (loading) return <div style={{minHeight:'100vh',background:'#0e0e0f'}}/>
+  if (loading) return (
+    <div style={{minHeight:'100vh',background:'#0e0e0f',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{color:'#f59e0b',fontFamily:'DM Mono,monospace',fontSize:'14px'}}>Loading...</div>
+    </div>
+  )
 
   return (
     <div className="dash">
