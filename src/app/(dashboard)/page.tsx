@@ -23,7 +23,7 @@ export default function DashboardPage() {
       if (!onboarded) { router.push('/onboarding'); return }
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { window.location.replace('/landing'); return }
+      if (!user) { window.location.replace('/login'); return }
       const [{ data: st }, { data: sa }, { data: inv }] = await Promise.all([
         supabase.from('streams').select('*').eq('user_id', user.id).order('stream_date', { ascending: true }),
         supabase.from('sales').select('*').eq('user_id', user.id),
