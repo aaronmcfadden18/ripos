@@ -23,7 +23,7 @@ export default function DashboardPage() {
       if (!onboarded) { router.push('/onboarding'); return }
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { window.location.replace('/home'); return }
+      if (!user) { window.location.replace('/landing'); return }
       const [{ data: st }, { data: sa }, { data: inv }] = await Promise.all([
         supabase.from('streams').select('*').eq('user_id', user.id).order('stream_date', { ascending: true }),
         supabase.from('sales').select('*').eq('user_id', user.id),
@@ -121,7 +121,7 @@ export default function DashboardPage() {
         </div>
         <div style={{display:'flex',gap:'10px'}}>
           <Link href="/streams/import" className="dash-import" id="tour-import">↑ Import CSV</Link>
-          <Link href="/streams/new" className="dash-cta" id="tour-new-stream">+ New stream</Link><button className="dash-signout" onClick={async()=>{const {createClient}=await import("@/lib/supabase/client");const sb=createClient();sb.auth.signOut().then(()=>{ window.location.href="/home" })}}>Sign out</button>
+          <Link href="/streams/new" className="dash-cta" id="tour-new-stream">+ New stream</Link><button className="dash-signout" onClick={async()=>{const {createClient}=await import("@/lib/supabase/client");const sb=createClient();sb.auth.signOut().then(()=>{ window.location.href="/landing" })}}>Sign out</button>
         </div>
       </div>
 
