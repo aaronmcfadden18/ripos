@@ -93,7 +93,7 @@ export default function LoginPage() {
             </div>
           )}
         </div>
-        <p className="rip-tagline"><a href="/home" style="color:#52525b;font-size:12px;text-decoration:none;font-family:DM Mono,monospace">← Back to home</a></p>
+        <p className="rip-tagline"><a href="/home" style={{color:"#52525b",fontSize:"12px",textDecoration:"none",fontFamily:"DM Mono,monospace"}}>← Back to home</a></p>
       </main>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap');
