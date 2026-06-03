@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         ['7. Cookies', 'RipOS uses only essential cookies required for authentication. No advertising or tracking cookies are used.'],
         ['8. Data Retention', 'I retain your data for as long as your account is active. If you delete your account, your data will be permanently deleted within 30 days.'],
         ['9. Children', 'RipOS is not intended for users under 18. I do not knowingly collect data from minors.'],
-        ['10. Complaints', 'If you have concerns about how I handle your data, you can contact the UK Information Commissioner's Office (ICO) at ico.org.uk.'],
+        ['10. Complaints', 'If you have concerns about how I handle your data, you can contact the UK Information Commissioner Office (ICO) at ico.org.uk.'],
       ].map(([title, body]) => (
         <div key={title} style={{marginBottom:'32px'}}>
           <h2 style={{fontSize:'14px',color:'#f4f4f5',marginBottom:'8px',fontFamily:'DM Mono,monospace'}}>{title}</h2>
