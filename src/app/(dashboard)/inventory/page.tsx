@@ -22,6 +22,9 @@ export default function InventoryPage() {
   const [qPacks, setQPacks] = useState('')
   const [qSaving, setQSaving] = useState(false)
   const [qDone, setQDone] = useState(false)
+  const [showCsvImport, setShowCsvImport] = useState(false)
+  const [csvImporting, setCsvImporting] = useState(false)
+  const [csvResult, setCsvResult] = useState<{imported:number,skipped:number}|null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -123,6 +126,61 @@ export default function InventoryPage() {
   const qCostPerUnit = qName && qTotal && qQty ? (parseFloat(qTotal) / (parseInt(qQty) || 1)) : null
   const isExisting = items.find(i => i.product_name.toLowerCase() === qName.trim().toLowerCase())
 
+  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCsvImporting(true)
+    setCsvResult(null)
+    const text = await file.text()
+    const lines = text.trim().split('\n')
+    const headers = lines[0].split(',').map((h:string) => h.trim().toLowerCase().replace(/[^a-z0-9_]/g,''))
+    
+    // Flexible column mapping
+    const col = (names: string[]) => names.map(n => headers.indexOf(n)).find(i => i >= 0) ?? -1
+    const nameCol = col(['product_name','product','name','item','title','set'])
+    const qtyCol = col(['quantity','qty','boxes','units','stock'])
+    const costCol = col(['cost_per_unit','cost_per_box','cost','price_paid','unit_cost','total_cost'])
+    const packsCol = col(['packs_per_box','packs','pack_count'])
+    const priceCol = col(['suggested_price','sell_price','price'])
+    
+    if (nameCol === -1) {
+      setCsvImporting(false)
+      alert('Could not find a product name column. Make sure your CSV has a column called "product", "name", or "product_name".')
+      return
+    }
+
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    let imported = 0, skipped = 0
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',').map((c:string) => c.trim().replace(/^"|"$/g,''))
+      const productName = nameCol >= 0 ? cols[nameCol] : ''
+      if (!productName) { skipped++; continue }
+      
+      const qty = qtyCol >= 0 ? parseInt(cols[qtyCol]) || 1 : 1
+      let cost = costCol >= 0 ? parseFloat(cols[costCol]) || null : null
+      const packs = packsCol >= 0 ? parseInt(cols[packsCol]) || null : null
+      const suggestedPrice = priceCol >= 0 ? parseFloat(cols[priceCol]) || null : null
+
+      await supabase.from('inventory_items').insert({
+        user_id: user.id,
+        product_name: productName,
+        quantity: qty,
+        cost_per_unit: cost,
+        packs_per_box: packs,
+        suggested_price: suggestedPrice,
+      })
+      imported++
+    }
+
+    const { data } = await supabase.from('inventory_items').select('*').order('created_at', { ascending: false })
+    setItems(data ?? [])
+    setCsvImporting(false)
+    setCsvResult({ imported, skipped })
+  }
+
   return (
     <div className="iv">
       <div className="iv-header">
@@ -202,6 +260,29 @@ export default function InventoryPage() {
         </div>
       )}
 
+      {showCsvImport && (
+        <div className="inv-csv-panel">
+          <h3 className="inv-csv-title">Import stock from CSV</h3>
+          <p className="inv-csv-sub">Your CSV needs at least a <strong>product name</strong> column. Other columns are optional and auto-detected.</p>
+          <div className="inv-csv-example">
+            <p className="inv-csv-example-label">Example format:</p>
+            <code>product_name, quantity, cost_per_unit, packs_per_box</code>
+            <code>OP-03 Booster Box, 4, 125.00, 24</code>
+            <code>OP-06 Booster Box, 2, 89.99, 24</code>
+          </div>
+          <p className="inv-csv-sub" style={{marginTop:'8px'}}>Accepted column names: <em>product/name/product_name</em>, <em>qty/quantity/boxes</em>, <em>cost/cost_per_unit/cost_per_box</em>, <em>packs/packs_per_box</em></p>
+          {csvImporting ? (
+            <p className="inv-csv-sub">Importing...</p>
+          ) : csvResult ? (
+            <p className="inv-csv-sub" style={{color:'#4ade80'}}>✓ Imported {csvResult.imported} items{csvResult.skipped > 0 ? `, skipped ${csvResult.skipped}` : ''}</p>
+          ) : (
+            <label className="inv-csv-upload">
+              <span>Choose CSV file</span>
+              <input type="file" accept=".csv" onChange={handleCsvImport} style={{display:'none'}}/>
+            </label>
+          )}
+        </div>
+      )}
       {showForm && (
         <form onSubmit={handleAdd} className="iv-form">
           <div className="iv-form-grid">
