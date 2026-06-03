@@ -191,6 +191,7 @@ export default function InventoryPage() {
         </div>
         <div style={{display:'flex',gap:8}}>
           <button className="iv-quick-btn" onClick={() => { setShowQuick(true); setShowForm(false) }}>⚡ Quick add</button>
+          <button className="iv-quick-btn" onClick={() => setShowCsvImport(v => !v)}>📥 Import CSV</button>
           <button className="iv-cta" onClick={() => { setShowForm(v => !v); setShowQuick(false) }}>{showForm ? '✕ Close' : '+ Full add'}</button>
         </div>
       </div>
