@@ -158,8 +158,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {(insightsLoading || insights.length > 0) && (
-        {releases.length > 0 && (
+      {releases.length > 0 && (
         <div className="dash-card">
           <div className="dash-card-head">
             <span className="dash-card-title">📦 Upcoming releases</span>
@@ -184,7 +183,8 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-        <div className="dash-card dash-insights-card">
+      {(insightsLoading || insights.length > 0) && (
+          <div className="dash-card dash-insights-card">
           <div className="dash-card-head">
             <span className="dash-card-title">AI insights</span>
             
