@@ -233,7 +233,7 @@ export default function StreamsPage() {
         .sl-expand-label{font-size:10px;color:#52525b;text-transform:uppercase;letter-spacing:0.05em}
         .sl-expand-val{font-size:14px;font-weight:500;color:#d4d4d8}
         .sl-expand-notes{font-size:12px;color:#52525b;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)}
-        .sl-name{color:#d4d4d8;font-weight:500;display:block;margin-bottom:2px}
+        .sl-name{color:#d4d4d8;font-weight:500;display:block;margin-bottom:2px}.sl-name-link{text-decoration:none}.sl-name-link:hover .sl-name{color:#f59e0b}
         .sl-note{font-size:11px;color:#3f3f46;display:block}
         .sl-muted{color:#52525b}
         .sl-revenue{color:#f4f4f5;font-weight:500}
