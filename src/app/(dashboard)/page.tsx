@@ -116,7 +116,7 @@ export default function DashboardPage() {
 
       <div className="dash-header">
         <div>
-          <div className="dash-logo">Rip<em>OS</em></div>
+          <img src="/logo.png" style={{height:"28px",width:"auto"}} alt="RipOS"/>
           <h1 className="dash-title">Dashboard</h1>
         </div>
         <div style={{display:'flex',gap:'10px'}}>

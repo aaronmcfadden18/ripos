@@ -43,7 +43,7 @@ export default function LoginPage() {
   if (!showAuth) return (
     <div className="land">
       <nav className="land-nav">
-        <div className="land-logo">Rip<em>OS</em></div>
+        <img src="/logo.png" style={{height:"36px",width:"auto"}} alt="RipOS"/>
         <div style={{display:'flex',gap:'12px',alignItems:'center'}}>
           <span className="land-beta">Free beta</span>
           <button className="land-signin" onClick={()=>{setShowAuth(true);setMode('login')}}>Sign in</button>
@@ -104,8 +104,7 @@ export default function LoginPage() {
         </div>
       </section>
       <footer className="land-footer">
-        <div className="land-logo">Rip<em>OS</em></div>
-        <p style={{fontSize:'12px',color:'#71717a'}}>Built for breakers. Designed to ship.</p>
+        <img src="/logo.png" style={{height:"28px",width:"auto"}} alt="RipOS"/>
         <button className="land-signin" onClick={()=>{setShowAuth(true);setMode('login')}}>Sign in</button>
       </footer>
       <style>{`
@@ -161,8 +160,7 @@ export default function LoginPage() {
       <main className="rip-main">
         <div className="rip-card">
           <div className="rip-logo-wrap">
-            <div className="rip-logo-mark"><span className="rip-logo-inner">R</span></div>
-            <span className="rip-logo-text">Rip<em>OS</em></span>
+            <img src="/logo.png" style={{height:"32px",width:"auto"}} alt="RipOS"/>
           </div>
           <button className="rip-back" onClick={()=>setShowAuth(false)}>← Back to home</button>
           {sent ? (
