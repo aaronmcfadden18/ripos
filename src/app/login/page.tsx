@@ -114,7 +114,7 @@ export default function LoginPage() {
         .land{min-height:100vh;display:flex;flex-direction:column}
         .land-nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.06);max-width:1100px;margin:0 auto;width:100%}
         .land-logo{font-size:18px;font-weight:500;color:#f4f4f5}.land-logo em{font-style:normal;color:#f59e0b}
-        .land-beta{font-size:11px;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:20px;padding:3px 10px}
+        .land-beta{white-space:nowrap;font-size:11px;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:20px;padding:3px 10px}
         .land-signin{background:none;border:none;color:#a1a1aa;font-size:13px;cursor:pointer;font-family:'DM Mono',monospace}
         .land-signin:hover{color:#f4f4f5}
         .land-cta{background:#f59e0b;color:#0e0e0f;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Mono',monospace}
