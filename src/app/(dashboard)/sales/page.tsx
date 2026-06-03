@@ -202,7 +202,7 @@ export default function SalesPage() {
         .sa-table td{padding:12px 16px;color:#a1a1aa;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle}
         .sa-table tr:last-child td{border-bottom:none}
         .sa-table tr:hover td{background:rgba(255,255,255,0.015)}
-        .sa-buyer{font-weight:500;color:#d4d4d8}
+        .sa-buyer{font-weight:500;color:#d4d4d8;transition:color 0.15s}.sa-buyer:hover{color:#f59e0b}
         .sa-product{font-size:12px;color:#71717a}
         .sa-platform{font-size:11px;color:#71717a;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:5px;padding:2px 8px}
         .sa-amount{font-weight:500;color:#f4f4f5}

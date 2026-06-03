@@ -165,7 +165,7 @@ export default function StreamDetailPage() {
         .sd-notes-text{font-size:13px;color:#a1a1aa;line-height:1.6}
         .sd-buyers{display:flex;flex-direction:column;gap:8px}
         .sd-buyer-row{display:flex;justify-content:space-between;font-size:13px}
-        .sd-buyer-name{color:#d4d4d8}
+        .sd-buyer-name{color:#d4d4d8;transition:color 0.15s}.sd-buyer-name:hover{color:#f59e0b}
         .sd-buyer-amt{color:#f4f4f5;font-weight:500}
         .sd-sales-table{overflow:auto}
         .sd-table{width:100%;border-collapse:collapse;font-size:13px;min-width:500px}
