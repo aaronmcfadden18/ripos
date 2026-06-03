@@ -38,13 +38,6 @@ export default function DashboardPage() {
         .order('release_date', { ascending: true })
         .limit(5)
       setReleases(releaseData ?? [])
-      const { data: releaseData } = await supabase
-        .from('release_calendar')
-        .select('*')
-        .gte('release_date', new Date().toISOString().split('T')[0])
-        .order('release_date', { ascending: true })
-        .limit(5)
-      setReleases(releaseData ?? [])
       setSales(sa ?? [])
       setInventory(inv ?? [])
       setLoading(false)
@@ -165,7 +158,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-{releases.length > 0 && (
+      {releases.length > 0 && (
         <div className="dash-card">
           <div className="dash-card-head">
             <span className="dash-card-title">📦 Upcoming releases</span>
