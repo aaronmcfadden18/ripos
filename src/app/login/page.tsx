@@ -56,10 +56,6 @@ export default function LoginPage() {
         <p className="land-sub">Whatnot tells you what you earned. RipOS tells you what you actually made — after stock costs, platform fees, and VAT. See what you actually made — in 30 seconds.</p>
         <button className="land-cta land-cta-lg" onClick={()=>{setShowAuth(true);setMode('signup')}}>See your real profit →</button>
         <p className="land-note">No credit card · Free during beta</p>
-        <div style={{marginTop:'48px',display:'flex',flexDirection:'column',gap:'16px',width:'100%',maxWidth:'860px'}}>
-          <p style={{fontSize:'11px',color:'#52525b',textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>What you get</p>
-          <img src="/screenshot-stream.png" alt="RipOS new stream" style={{width:'100%',borderRadius:'12px',border:'1px solid rgba(255,255,255,0.08)',boxShadow:'0 0 40px rgba(0,0,0,0.4)'}}/>
-        </div>
         <div className="land-preview">
           <div className="land-preview-card">
             <div className="land-preview-row">
@@ -99,6 +95,10 @@ export default function LoginPage() {
           <div className="land-stat-div"/>
           <div className="land-stat"><p className="land-stat-val">5min</p><p className="land-stat-label">To get fully set up</p></div>
         </div>
+      </section>
+      <section className="land-section" style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'60px 24px'}}>
+        <p style={{fontSize:'11px',color:'#52525b',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'24px'}}>What you get</p>
+        <img src="/screenshot-stream.png" alt="RipOS new stream" style={{width:'100%',maxWidth:'860px',borderRadius:'12px',border:'1px solid rgba(255,255,255,0.08)'}}/>
       </section>
       <section className="land-section land-cta-section">
         <div className="land-inner" style={{alignItems:'center',textAlign:'center'}}>
