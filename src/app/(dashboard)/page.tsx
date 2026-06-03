@@ -38,6 +38,13 @@ export default function DashboardPage() {
         .order('release_date', { ascending: true })
         .limit(5)
       setReleases(releaseData ?? [])
+      const { data: releaseData } = await supabase
+        .from('release_calendar')
+        .select('*')
+        .gte('release_date', new Date().toISOString().split('T')[0])
+        .order('release_date', { ascending: true })
+        .limit(5)
+      setReleases(releaseData ?? [])
       setSales(sa ?? [])
       setInventory(inv ?? [])
       setLoading(false)
@@ -158,7 +165,32 @@ export default function DashboardPage() {
         )}
       </div>
 
-{(insightsLoading || insights.length > 0) && (
+{releases.length > 0 && (
+        <div className="dash-card">
+          <div className="dash-card-head">
+            <span className="dash-card-title">📦 Upcoming releases</span>
+          </div>
+          <div style={{padding:'12px 16px',display:'flex',flexDirection:'column',gap:'8px'}}>
+            {releases.map((r:any) => {
+              const days = Math.ceil((new Date(r.release_date).getTime() - Date.now()) / (1000*60*60*24))
+              const isSoon = days <= 7
+              return (
+                <div key={r.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'rgba(255,255,255,0.03)',borderRadius:'8px'}}>
+                  <div>
+                    <p style={{fontSize:'13px',color:'#d4d4d8',fontWeight:'500'}}>{r.name}</p>
+                    <p style={{fontSize:'11px',color:'#52525b',marginTop:'2px'}}>{r.set_code ? r.set_code+' · ' : ''}{r.category}</p>
+                  </div>
+                  <div style={{textAlign:'right',flexShrink:0,marginLeft:'12px'}}>
+                    <p style={{fontSize:'12px',color:'#a1a1aa'}}>{new Date(r.release_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p>
+                    <p style={{fontSize:'11px',fontWeight:'500',color:isSoon?'#f87171':'#f59e0b',marginTop:'2px'}}>{isSoon?'This week!':days+' days'}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {(insightsLoading || insights.length > 0) && (
           <div className="dash-card dash-insights-card">
           <div className="dash-card-head">
             <span className="dash-card-title">AI insights</span>
