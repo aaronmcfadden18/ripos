@@ -148,7 +148,7 @@ export default function SalesPage() {
                 <tbody>
                   {filtered.map(s => (
                     <tr key={s.id}>
-                      <td><span className="sa-buyer">{s.buyer_name||'—'}</span></td>
+                      <td>{s.buyer_name ? <a href={`/buyers/${encodeURIComponent(s.buyer_name)}`} className="sa-buyer" style={{textDecoration:"none",cursor:"pointer"}}>{s.buyer_name}</a> : <span>—</span>}</td>
                       <td><span className="sa-product">{s.product_description||'—'}</span></td>
                       <td><span className="sa-platform">{s.platform}</span></td>
                       <td><span className="sa-amount">{s.sale_amount?'£'+s.sale_amount:'—'}</span></td>

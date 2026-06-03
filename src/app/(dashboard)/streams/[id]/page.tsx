@@ -95,7 +95,7 @@ export default function StreamDetailPage() {
             <div className="sd-buyers">
               {sortedBuyers.slice(0,8).map(([name, total]: any) => (
                 <div key={name} className="sd-buyer-row">
-                  <span className="sd-buyer-name">{name}</span>
+                  <a href={`/buyers/${encodeURIComponent(name)}`} className="sd-buyer-name" style={{textDecoration:"none"}}>{name}</a>
                   <span className="sd-buyer-amt">£{total.toFixed(2)}</span>
                 </div>
               ))}
@@ -113,7 +113,7 @@ export default function StreamDetailPage() {
               <tbody>
                 {sales.map(s => (
                   <tr key={s.id}>
-                    <td className="sd-buyer-cell">{s.buyer_name||'—'}</td>
+                    <td className="sd-buyer-cell">{s.buyer_name ? <a href={`/buyers/${encodeURIComponent(s.buyer_name)}`} style={{color:"#d4d4d8",textDecoration:"none"}}>{s.buyer_name}</a> : '—'}</td>
                     <td className="sd-product-cell">{s.product_description||'—'}</td>
                     <td>{s.sale_amount?'£'+s.sale_amount:'—'}</td>
                     <td><span className="sd-badge" style={{color:s.payment_status==='paid'?'#4ade80':'#f87171'}}>{s.payment_status||'—'}</span></td>
