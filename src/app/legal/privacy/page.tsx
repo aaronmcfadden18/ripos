@@ -7,9 +7,9 @@ export default function PrivacyPage() {
       {[
         ['1. Who We Are', 'RipOS is operated by Aaron McFadden, a sole trader based in England. Contact: aaronmcfadden18@gmail.com'],
         ['2. Data I Collect', 'Account data: your email address. Data you enter: stream records, revenue, costs, inventory, sales records including buyer usernames, and onboarding responses. Technical data: basic usage analytics via Vercel. No advertising tracking or third-party analytics.'],
-        ['3. How I Use Your Data', 'To provide and improve the Service. To generate AI insights about your business (processed via Anthropic's API — no data is stored by Anthropic). To send transactional emails. I will never sell your data or use it for advertising.'],
+        ['3. How I Use Your Data', 'To provide and improve the Service. To generate AI insights about your business (processed via Anthropic API — no data is stored by Anthropic). To send transactional emails. I will never sell your data or use it for advertising.'],
         ['4. Data Storage', 'Your data is stored securely using Supabase, hosted in the EU. Passwords are never stored — we use magic link and email/password authentication via Supabase Auth.'],
-        ['5. Third-Party Services', 'Supabase (database and auth), Vercel (hosting), and Anthropic (AI insights). Each has their own privacy policy.'],
+        ['5. Third-Party Services', 'Supabase (database and auth), Vercel (hosting), and Anthropic (AI insights). Each has its own privacy policy.'],
         ['6. Your Rights (UK GDPR)', 'You have the right to access, rectify, erase, and port your personal data, and to object to processing. Email aaronmcfadden18@gmail.com to exercise these rights. I will respond within 30 days.'],
         ['7. Cookies', 'RipOS uses only essential cookies required for authentication. No advertising or tracking cookies are used.'],
         ['8. Data Retention', 'I retain your data for as long as your account is active. If you delete your account, your data will be permanently deleted within 30 days.'],
