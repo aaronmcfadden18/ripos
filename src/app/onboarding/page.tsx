@@ -342,7 +342,7 @@ export default function OnboardingPage() {
         .ob-feature-icon{font-size:20px;flex-shrink:0}
         .ob-feature-title{font-size:13px;color:#e4e4e7;font-weight:500;margin-bottom:2px}
         .ob-feature-desc{font-size:12px;color:#71717a}
-        .ob-btn{background:#f59e0b;color:#0e0e0f;border:none;border-radius:10px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:14px;font-weight:500;cursor:pointer;width:100%}
+        .ob-btn{background:#f59e0b;color:#0e0e0f;border:none;border-radius:10px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:16px;font-weight:500;cursor:pointer;width:100%}
         .ob-btn:hover{background:#d97706}
         .ob-btn:disabled{opacity:0.5;cursor:not-allowed}
         .ob-btn-lg{padding:16px 20px;font-size:15px}

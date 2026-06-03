@@ -219,10 +219,10 @@ export default function LoginPage() {
         .rip-form{display:flex;flex-direction:column;gap:14px}
         .rip-field{display:flex;flex-direction:column;gap:6px}
         .rip-label{font-size:12px;color:#a1a1aa}
-        .rip-input{background:#0e0e0f;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:14px;color:#f4f4f5;outline:none;width:100%}
+        .rip-input{background:#0e0e0f;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:16px;color:#f4f4f5;outline:none;width:100%}
         .rip-input:focus{border-color:rgba(245,158,11,0.5)}
         .rip-error{font-size:12px;color:#f87171}
-        .rip-submit{background:#f59e0b;color:#0e0e0f;border:none;border-radius:8px;padding:11px;font-family:'DM Mono',monospace;font-size:14px;font-weight:500;cursor:pointer;width:100%}
+        .rip-submit{background:#f59e0b;color:#0e0e0f;border:none;border-radius:8px;padding:11px;font-family:'DM Mono',monospace;font-size:16px;font-weight:500;cursor:pointer;width:100%}
         .rip-submit:disabled{opacity:0.5;cursor:not-allowed}
         .rip-sent{display:flex;flex-direction:column;gap:10px}
         .rip-sent-title{font-size:16px;color:#f4f4f5;font-weight:500}
