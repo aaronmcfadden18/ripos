@@ -125,7 +125,7 @@ export default function StreamsPage() {
                     <td>
                       {isEditing
                         ? <input className="sl-input" value={editData.title} onChange={e=>setEditData({...editData,title:e.target.value})} />
-                        : <div><span className="sl-name">{s.title}</span>{s.notes&&<span className="sl-note">{s.notes.slice(0,50)}</span>}</div>
+                        : <div><a href={`/streams/${s.id}`} style={{textDecoration:"none"}}><span className="sl-name" style={{cursor:"pointer"}}>{s.title}</span></a>{s.notes&&<span className="sl-note">{s.notes.slice(0,50)}</span>}</div>
                       }
                     </td>
                     <td>
