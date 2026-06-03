@@ -10,6 +10,7 @@ export default function DashboardPage() {
   const chartRef = useRef<any>(null)
   const chartInstance = useRef<any>(null)
   const [streams, setStreams] = useState<any[]>([])
+  const [releases, setReleases] = useState<any[]>([])
   const [sales, setSales] = useState<any[]>([])
   const [inventory, setInventory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
