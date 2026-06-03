@@ -58,7 +58,6 @@ export default function LoginPage() {
         <p className="land-note">No credit card · Free during beta</p>
         <div style={{marginTop:'48px',display:'flex',flexDirection:'column',gap:'16px',width:'100%',maxWidth:'860px'}}>
           <p style={{fontSize:'11px',color:'#52525b',textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>What you get</p>
-          <img src="/screenshot-dashboard.png" alt="RipOS dashboard" style={{width:'100%',borderRadius:'12px',border:'1px solid rgba(255,255,255,0.08)',boxShadow:'0 0 40px rgba(0,0,0,0.4)'}}/>
           <img src="/screenshot-stream.png" alt="RipOS new stream" style={{width:'100%',borderRadius:'12px',border:'1px solid rgba(255,255,255,0.08)',boxShadow:'0 0 40px rgba(0,0,0,0.4)'}}/>
         </div>
         <div className="land-preview">
