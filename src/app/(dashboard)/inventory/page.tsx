@@ -262,22 +262,25 @@ export default function InventoryPage() {
       )}
 
       {showCsvImport && (
-        <div className="inv-csv-panel">
-          <h3 className="inv-csv-title">Import stock from CSV</h3>
-          <p className="inv-csv-sub">Your CSV needs at least a <strong>product name</strong> column. Other columns are optional and auto-detected.</p>
-          <div className="inv-csv-example">
-            <p className="inv-csv-example-label">Example format:</p>
-            <code>product_name, quantity, cost_per_unit, packs_per_box</code>
-            <code>OP-03 Booster Box, 4, 125.00, 24</code>
-            <code>OP-06 Booster Box, 2, 89.99, 24</code>
+        <div style={{background:'#18181b',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'12px',padding:'20px',display:'flex',flexDirection:'column',gap:'12px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <h3 style={{fontSize:'14px',color:'#f4f4f5',fontWeight:'500'}}>Import stock from CSV</h3>
+            <button onClick={() => setShowCsvImport(false)} style={{background:'none',border:'none',color:'#52525b',cursor:'pointer',fontSize:'16px'}}>✕</button>
           </div>
-          <p className="inv-csv-sub" style={{marginTop:'8px'}}>Accepted column names: <em>product/name/product_name</em>, <em>qty/quantity/boxes</em>, <em>cost/cost_per_unit/cost_per_box</em>, <em>packs/packs_per_box</em></p>
+          <p style={{fontSize:'13px',color:'#71717a',lineHeight:'1.6'}}>Your CSV needs at least a <strong style={{color:'#d4d4d8'}}>product name</strong> column. Other columns are optional and auto-detected.</p>
+          <div style={{background:'#0e0e0f',borderRadius:'8px',padding:'12px',display:'flex',flexDirection:'column',gap:'4px'}}>
+            <p style={{fontSize:'11px',color:'#52525b',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Example format</p>
+            <code style={{fontSize:'12px',color:'#a78bfa',fontFamily:'DM Mono,monospace'}}>product_name, quantity, cost_per_unit, packs_per_box</code>
+            <code style={{fontSize:'12px',color:'#a1a1aa',fontFamily:'DM Mono,monospace'}}>OP-03 Booster Box, 4, 125.00, 24</code>
+            <code style={{fontSize:'12px',color:'#a1a1aa',fontFamily:'DM Mono,monospace'}}>OP-06 Booster Box, 2, 89.99, 24</code>
+          </div>
+          <p style={{fontSize:'12px',color:'#52525b'}}>Also accepts: <span style={{color:'#a78bfa'}}>product, name, qty, boxes, cost, cost_per_box, packs</span></p>
           {csvImporting ? (
-            <p className="inv-csv-sub">Importing...</p>
+            <p style={{fontSize:'13px',color:'#f59e0b'}}>Importing...</p>
           ) : csvResult ? (
-            <p className="inv-csv-sub" style={{color:'#4ade80'}}>✓ Imported {csvResult.imported} items{csvResult.skipped > 0 ? `, skipped ${csvResult.skipped}` : ''}</p>
+            <p style={{fontSize:'13px',color:'#4ade80'}}>✓ Imported {csvResult.imported} items{csvResult.skipped > 0 ? `, skipped ${csvResult.skipped}` : ''}</p>
           ) : (
-            <label className="inv-csv-upload">
+            <label style={{display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'10px 20px',background:'#f59e0b',color:'#0e0e0f',borderRadius:'8px',fontSize:'13px',fontWeight:'500',cursor:'pointer',width:'fit-content'}}>
               <span>Choose CSV file</span>
               <input type="file" accept=".csv" onChange={handleCsvImport} style={{display:'none'}}/>
             </label>
