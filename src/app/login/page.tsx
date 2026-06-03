@@ -46,7 +46,7 @@ export default function LoginPage() {
         <img src="/logo.png" style={{height:"36px",width:"auto"}} alt="RipOS"/>
         <div style={{display:'flex',gap:'12px',alignItems:'center'}}>
           <span className="land-beta">Free beta</span>
-          <button className="land-signin" onClick={()=>{setShowAuth(true);setMode('login')}}>Sign in</button>
+          <div style={{display:'flex',alignItems:'center',gap:'16px'}}><a href='/legal/terms' style={{fontSize:'11px',color:'#52525b',textDecoration:'none'}}>Terms</a><a href='/legal/privacy' style={{fontSize:'11px',color:'#52525b',textDecoration:'none'}}>Privacy</a><button className="land-signin" onClick={()=>{setShowAuth(true);setMode('login')}}>Sign in</button></div>
           <button className="land-cta" onClick={()=>{setShowAuth(true);setMode('signup')}}>Sign up free →</button>
         </div>
       </nav>
