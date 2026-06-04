@@ -78,9 +78,9 @@ export default function DashboardPage() {
   }
   const topBuyers = Array.from(buyerMap.entries())
     .map(([name, { count, total }]) => ({ name, count, total }))
-    .sort((a, b) => b.count - a.count)
+    .sort((a, b) => b.total - a.total)
     .slice(0, 5)
-  const maxCount = topBuyers[0]?.count ?? 1
+  const maxCount = topBuyers[0]?.total ?? 1
   const chartStreams = streams.slice(-8)
 
   useEffect(() => {
