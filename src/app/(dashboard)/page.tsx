@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [inventory, setInventory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showTour, setShowTour] = useState(false)
+  const [statModal, setStatModal] = useState<string|null>(null)
   const [insights, setInsights] = useState<any[]>([])
   const [insightsLoading, setInsightsLoading] = useState(false)
 
@@ -134,17 +135,17 @@ export default function DashboardPage() {
       </div>
 
       <div className="dash-stats" id="tour-stats">
-        <div className="dash-stat">
+        <div className="dash-stat" onClick={()=>setStatModal('turnover')} style={{cursor:'pointer'}}>
           <p className="dash-stat-label">Total turnover</p>
           <p className="dash-stat-val">£{totalRevenue.toLocaleString('en-GB',{minimumFractionDigits:0})}</p>
           <p className="dash-stat-sub">{streams.length} streams</p>
         </div>
-        <div className="dash-stat">
+        <div className="dash-stat" onClick={()=>setStatModal('profit')} style={{cursor:'pointer'}}>
           <p className="dash-stat-label">Total profit</p>
           <p className="dash-stat-val" style={{color:totalProfit>=0?'#4ade80':'#f87171'}}>£{totalProfit.toLocaleString('en-GB',{minimumFractionDigits:0})}</p>
           <p className="dash-stat-sub" style={{color:parseFloat(avgMargin)>=20?'#4ade80':'#f59e0b'}}>{avgMargin}% margin</p>
         </div>
-        <div className="dash-stat">
+        <div className="dash-stat" onClick={()=>setStatModal('avg')} style={{cursor:'pointer'}}>
           <p className="dash-stat-label">Avg per stream</p>
           <p className="dash-stat-val dash-amber">£{avgPerStream.toFixed(2)}</p>
           <p className="dash-stat-sub">revenue</p>
@@ -157,6 +158,68 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {statModal && (() => {
+        const sorted = [...streams].sort((a,b) => new Date(a.stream_date||0).getTime() - new Date(b.stream_date||0).getTime())
+        const titles: Record<string,string> = { turnover: 'Total Turnover', profit: 'Total Profit', avg: 'Avg Per Stream' }
+        const colors: Record<string,string> = { turnover: '#f59e0b', profit: '#4ade80', avg: '#f59e0b' }
+        let cumRev = 0, cumProfit = 0
+        const points = sorted.map((s, i) => {
+          cumRev += (s.revenue ?? 0)
+          cumProfit += (s.revenue ?? 0) - (s.inventory_cost ?? 0)
+          const val = statModal === 'turnover' ? cumRev : statModal === 'profit' ? cumProfit : cumRev / (i + 1)
+          return { label: s.stream_date ? new Date(s.stream_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : 'Stream '+(i+1), value: val }
+        })
+        const maxVal = Math.max(...points.map(p => p.value), 1)
+        const minVal = Math.min(...points.map(p => p.value), 0)
+        const range = maxVal - minVal || 1
+        const w = 560, h = 200, px = 40, py = 20
+        const chartW = w - px * 2, chartH = h - py * 2
+        const pathD = points.map((p, i) => {
+          const x = px + (points.length > 1 ? (i / (points.length - 1)) * chartW : chartW / 2)
+          const y = py + chartH - ((p.value - minVal) / range) * chartH
+          return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1)
+        }).join(' ')
+        const areaD = pathD + ' L' + (px + chartW).toFixed(1) + ',' + (py + chartH) + ' L' + px + ',' + (py + chartH) + ' Z'
+        const color = colors[statModal] || '#f59e0b'
+
+        return (
+          <div onClick={()=>setStatModal(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:999,padding:'16px'}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:'#18181b',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'12px',padding:'20px',width:'100%',maxWidth:'640px',maxHeight:'90vh',overflow:'auto'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
+                <p style={{fontSize:'13px',color:'#f4f4f5',fontWeight:500,fontFamily:'DM Mono,monospace'}}>{titles[statModal]}</p>
+                <button onClick={()=>setStatModal(null)} style={{background:'none',border:'none',color:'#71717a',fontSize:'18px',cursor:'pointer',padding:'4px'}}>✕</button>
+              </div>
+              <div style={{overflowX:'auto'}}>
+                <svg viewBox={"0 0 "+w+" "+h} style={{width:'100%',height:'auto',minWidth:'300px'}}>
+                  <defs>
+                    <linearGradient id="statGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={color} stopOpacity="0.3"/>
+                      <stop offset="100%" stopColor={color} stopOpacity="0.02"/>
+                    </linearGradient>
+                  </defs>
+                  {[0,0.25,0.5,0.75,1].map((f,i) => {
+                    const y = py + chartH * (1-f)
+                    const val = minVal + range * f
+                    return <g key={i}><line x1={px} x2={px+chartW} y1={y} y2={y} stroke="rgba(255,255,255,0.06)" /><text x={px-4} y={y+3} textAnchor="end" fill="#52525b" fontSize="9" fontFamily="DM Mono,monospace">£{val.toFixed(0)}</text></g>
+                  })}
+                  <path d={areaD} fill="url(#statGrad)" />
+                  <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  {points.map((p,i) => {
+                    const x = px + (points.length > 1 ? (i / (points.length - 1)) * chartW : chartW / 2)
+                    const y = py + chartH - ((p.value - minVal) / range) * chartH
+                    return <g key={i}>
+                      <circle cx={x} cy={y} r="4" fill="#18181b" stroke={color} strokeWidth="2"/>
+                      {points.length <= 12 && <text x={x} y={py+chartH+14} textAnchor="middle" fill="#52525b" fontSize="8" fontFamily="DM Mono,monospace">{p.label}</text>}
+                    </g>
+                  })}
+                </svg>
+              </div>
+              <p style={{fontSize:'11px',color:'#52525b',marginTop:'12px',textAlign:'center'}}>{statModal === 'avg' ? 'Running average per stream' : 'Cumulative over time'} · {points.length} streams</p>
+            </div>
+          </div>
+        )
+      })()}
 
       {releases.length > 0 && (
         <div className="dash-card">
