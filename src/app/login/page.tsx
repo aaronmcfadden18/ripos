@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
-type Mode = 'login' | 'signup' | 'magic'
+type Mode = 'login' | 'signup' | 'magic' | 'reset'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -22,6 +22,13 @@ export default function LoginPage() {
     const supabase = createClient()
     if (mode === 'magic') {
       const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin + '/auth/callback' } })
+      if (error) setError(error.message)
+      else setSent(true)
+      setLoading(false)
+      return
+    }
+    if (mode === 'reset') {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/auth/reset' })
       if (error) setError(error.message)
       else setSent(true)
       setLoading(false)
@@ -189,11 +196,14 @@ export default function LoginPage() {
                   <div className="rip-field">
                     <label className="rip-label">Password</label>
                     <input className="rip-input" type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} required/>
+                    {mode === 'login' && (
+                      <button type="button" onClick={() => { setMode('reset' as any); setError(null) }} style={{background:'none',border:'none',color:'#f59e0b',fontSize:'12px',fontFamily:'DM Mono,monospace',cursor:'pointer',marginTop:'8px',padding:0,textAlign:'left'}}>Forgot password?</button>
+                    )}
                   </div>
                 )}
                 {error && <p className="rip-error">{error}</p>}
                 <button type="submit" className="rip-submit" disabled={loading}>
-                  {loading ? 'Loading…' : mode==='login' ? 'Sign in' : mode==='signup' ? 'Create account' : 'Send magic link'}
+                  {loading ? 'Loading…' : mode==='login' ? 'Sign in' : mode==='signup' ? 'Create account' : mode==='reset' ? 'Send reset email' : 'Send magic link'}
                 </button>
               </form>
             </>
