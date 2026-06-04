@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -10,6 +10,23 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    // Supabase sends the token in URL hash. Detect session on mount.
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setSessionReady(true)
+      } else {
+        // Listen for auth state change (handles the recovery token flow)
+        const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+          if (session) setSessionReady(true)
+        })
+        return () => listener.subscription.unsubscribe()
+      }
+    })
+  }, [])
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,7 +71,8 @@ export default function ResetPasswordPage() {
               <input type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} required style={{background:'#0e0e0f',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'12px 14px',fontFamily:'DM Mono,monospace',fontSize:'16px',color:'#f4f4f5',outline:'none',width:'100%'}}/>
             </div>
             {error && <p style={{fontSize:'12px',color:'#f87171'}}>{error}</p>}
-            <button type="submit" disabled={loading} style={{background:'#f59e0b',color:'#0e0e0f',border:'none',borderRadius:'8px',padding:'12px',fontFamily:'DM Mono,monospace',fontSize:'14px',fontWeight:500,cursor:'pointer',marginTop:'8px'}}>
+            {!sessionReady && !error && <p style={{fontSize:'12px',color:'#71717a'}}>Verifying reset link...</p>}
+            <button type="submit" disabled={loading || !sessionReady} style={{background:sessionReady?'#f59e0b':'#52525b',color:'#0e0e0f',border:'none',borderRadius:'8px',padding:'12px',fontFamily:'DM Mono,monospace',fontSize:'14px',fontWeight:500,cursor:sessionReady?'pointer':'not-allowed',marginTop:'8px'}}>
               {loading ? 'Updating...' : 'Update password'}
             </button>
           </form>
