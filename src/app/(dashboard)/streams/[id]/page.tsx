@@ -8,34 +8,78 @@ export default function StreamDetailPage() {
   const { id } = useParams()
   const [stream, setStream] = useState<any>(null)
   const [sales, setSales] = useState<any[]>([])
+  const [inventory, setInventory] = useState<any[]>([])
+  const [linkedProducts, setLinkedProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [showInvPicker, setShowInvPicker] = useState(false)
+  const [addingItem, setAddingItem] = useState<any>(null)
+  const [addQty, setAddQty] = useState(1)
+  const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    const load = async () => {
-      const supabase = createClient()
-      const [{ data: s }, { data: sa }] = await Promise.all([
-        supabase.from('streams').select('*').eq('id', id).single(),
-        supabase.from('sales').select('*').eq('stream_id', id).order('created_at', { ascending: false })
-      ])
-      setStream(s)
-      setSales(sa ?? [])
-      setLoading(false)
-    }
+  const load = async () => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const [{ data: s }, { data: sa }, { data: inv }, { data: sp }] = await Promise.all([
+      supabase.from('streams').select('*').eq('id', id).single(),
+      supabase.from('sales').select('*').eq('stream_id', id).order('created_at', { ascending: false }),
+      supabase.from('inventory_items').select('*').eq('user_id', user!.id).order('product_name'),
+      supabase.from('stream_products').select('*, inventory_items(*)').eq('stream_id', id)
+    ])
+    setStream(s)
+    setSales(sa ?? [])
+    setInventory(inv ?? [])
+    setLinkedProducts(sp ?? [])
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [id])
+
+  const handleAddItem = async () => {
+    if (!addingItem) return
+    setSaving(true)
+    const supabase = createClient()
+    const costPerPack = (addingItem.cost_per_unit ?? 0) / (addingItem.packs_per_box ?? 1)
+    await supabase.from('stream_products').insert({
+      stream_id: id,
+      inventory_item_id: addingItem.id,
+      quantity_used: addQty,
+      cost_at_time: costPerPack
+    })
+    const newLinked = [...linkedProducts, { inventory_items: addingItem, quantity_used: addQty, cost_at_time: costPerPack }]
+    const newInventoryCost = newLinked.reduce((a: number, lp: any) => a + (lp.cost_at_time * lp.quantity_used), 0)
+    await supabase.from('streams').update({ inventory_cost: newInventoryCost }).eq('id', id)
+    setAddingItem(null)
+    setAddQty(1)
+    setShowInvPicker(false)
+    setSaving(false)
     load()
-  }, [id])
+  }
+
+  const handleRemoveItem = async (spId: string) => {
+    setSaving(true)
+    const supabase = createClient()
+    await supabase.from('stream_products').delete().eq('id', spId)
+    const newInventoryCost = linkedProducts
+      .filter((lp: any) => lp.id !== spId)
+      .reduce((a: number, lp: any) => a + (lp.cost_at_time * lp.quantity_used), 0)
+    await supabase.from('streams').update({ inventory_cost: newInventoryCost }).eq('id', id)
+    setSaving(false)
+    load()
+  }
 
   if (loading) return <div style={{minHeight:'100vh',background:'#0e0e0f',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{color:'#f59e0b',fontFamily:'DM Mono,monospace',fontSize:'14px'}}>Loading...</div></div>
   if (!stream) return <div style={{minHeight:'100vh',background:'#0e0e0f',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{color:'#f87171',fontFamily:'DM Mono,monospace'}}>Stream not found</div></div>
 
   const profit = (stream.revenue ?? 0) - (stream.inventory_cost ?? 0)
   const margin = stream.revenue > 0 ? ((profit / stream.revenue) * 100).toFixed(1) : '0'
-  const feeAmount = stream.inventory_cost && stream.revenue ? (stream.revenue * 0.08).toFixed(2) : null
   const topBuyers = sales.reduce((acc: any, s) => {
     if (!s.buyer_name) return acc
     acc[s.buyer_name] = (acc[s.buyer_name] || 0) + (s.sale_amount || 0)
     return acc
   }, {})
   const sortedBuyers = Object.entries(topBuyers).sort((a: any, b: any) => b[1] - a[1])
+  const linkedIds = new Set(linkedProducts.map((lp: any) => lp.inventory_item_id))
+  const availableInv = inventory.filter(i => !linkedIds.has(i.id))
 
   return (
     <div className="sd">
@@ -55,7 +99,7 @@ export default function StreamDetailPage() {
         </div>
         <div className="sd-stat">
           <p className="sd-stat-label">Total cost</p>
-          <p className="sd-stat-val sd-muted">{stream.inventory_cost ? '£'+stream.inventory_cost.toLocaleString() : '—'}</p>
+          <p className="sd-stat-val sd-muted">{stream.inventory_cost ? '£'+Number(stream.inventory_cost).toLocaleString() : '—'}</p>
         </div>
         <div className="sd-stat">
           <p className="sd-stat-label">Net profit</p>
@@ -78,7 +122,7 @@ export default function StreamDetailPage() {
           <h2 className="sd-card-title">Profit breakdown</h2>
           <div className="sd-breakdown">
             <div className="sd-brow"><span>Revenue</span><span>£{(stream.revenue??0).toFixed(2)}</span></div>
-            <div className="sd-brow sd-deduct"><span>Inventory cost</span><span>− £{((stream.inventory_cost??0)).toFixed(2)}</span></div>
+            <div className="sd-brow sd-deduct"><span>Inventory cost</span><span>- £{Number(stream.inventory_cost??0).toFixed(2)}</span></div>
             <div className="sd-bdivider"/>
             <div className="sd-brow sd-total"><span>Net profit</span><span style={{color:profit>=0?'#4ade80':'#f87171'}}>£{profit.toFixed(2)}</span></div>
           </div>
@@ -95,11 +139,57 @@ export default function StreamDetailPage() {
             <div className="sd-buyers">
               {sortedBuyers.slice(0,8).map(([name, total]: any) => (
                 <div key={name} className="sd-buyer-row">
-                  <a href={`/buyers/${encodeURIComponent(name)}`} className="sd-buyer-name" style={{textDecoration:"none"}}>{name}</a>
+                  <a href={'/buyers/'+encodeURIComponent(name)} className="sd-buyer-name" style={{textDecoration:'none'}}>{name}</a>
                   <span className="sd-buyer-amt">£{total.toFixed(2)}</span>
                 </div>
               ))}
             </div>
+          </div>
+        )}
+      </div>
+
+      <div className="sd-card">
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <h2 className="sd-card-title">Inventory used</h2>
+          <button className="sd-add-inv-btn" onClick={() => setShowInvPicker(!showInvPicker)} disabled={saving}>+ Add item</button>
+        </div>
+        {showInvPicker && (
+          <div className="sd-inv-picker">
+            {availableInv.length === 0 ? (
+              <p style={{fontSize:'13px',color:'#52525b'}}>No more items to add. <Link href="/inventory" style={{color:'#f59e0b'}}>Manage inventory</Link></p>
+            ) : (
+              <>
+                <select className="sd-select" value={addingItem?.id ?? ''} onChange={e => setAddingItem(inventory.find(i => i.id === e.target.value) ?? null)}>
+                  <option value="">Select an item...</option>
+                  {availableInv.map(i => (
+                    <option key={i.id} value={i.id}>{i.product_name} - £{((i.cost_per_unit??0)/(i.packs_per_box??1)).toFixed(2)}/pack ({i.quantity ?? 0} left)</option>
+                  ))}
+                </select>
+                {addingItem && (
+                  <div style={{display:'flex',gap:'10px',alignItems:'center',marginTop:'10px',flexWrap:'wrap'}}>
+                    <label style={{fontSize:'12px',color:'#71717a'}}>Packs used:</label>
+                    <input type="number" min={1} max={addingItem.quantity ?? 999} value={addQty} onChange={e => setAddQty(parseInt(e.target.value)||1)} className="sd-qty-input" />
+                    <span style={{fontSize:'12px',color:'#52525b'}}>= £{(((addingItem.cost_per_unit??0)/(addingItem.packs_per_box??1))*addQty).toFixed(2)}</span>
+                    <button className="sd-confirm-btn" onClick={handleAddItem} disabled={saving}>{saving ? '...' : 'Add'}</button>
+                    <button className="sd-cancel-btn" onClick={() => { setShowInvPicker(false); setAddingItem(null); setAddQty(1) }}>Cancel</button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        {linkedProducts.length === 0 ? (
+          <p style={{fontSize:'13px',color:'#3f3f46'}}>No inventory linked yet. Add items to track accurate cost.</p>
+        ) : (
+          <div className="sd-inv-list">
+            {linkedProducts.map((lp: any) => (
+              <div key={lp.id} className="sd-inv-row">
+                <span className="sd-inv-name">{lp.inventory_items?.product_name ?? '—'}</span>
+                <span className="sd-inv-qty">{lp.quantity_used} packs</span>
+                <span className="sd-inv-cost">£{(lp.cost_at_time * lp.quantity_used).toFixed(2)}</span>
+                <button className="sd-remove-btn" onClick={() => handleRemoveItem(lp.id)} disabled={saving}>x</button>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -113,7 +203,7 @@ export default function StreamDetailPage() {
               <tbody>
                 {sales.map(s => (
                   <tr key={s.id}>
-                    <td className="sd-buyer-cell">{s.buyer_name ? <a href={`/buyers/${encodeURIComponent(s.buyer_name)}`} style={{color:"#d4d4d8",textDecoration:"none"}}>{s.buyer_name}</a> : '—'}</td>
+                    <td className="sd-buyer-cell">{s.buyer_name ? <a href={'/buyers/'+encodeURIComponent(s.buyer_name)} style={{color:'#d4d4d8',textDecoration:'none'}}>{s.buyer_name}</a> : '—'}</td>
                     <td className="sd-product-cell">{s.product_description||'—'}</td>
                     <td>{s.sale_amount?'£'+s.sale_amount:'—'}</td>
                     <td><span className="sd-badge" style={{color:s.payment_status==='paid'?'#4ade80':'#f87171'}}>{s.payment_status||'—'}</span></td>
@@ -129,7 +219,7 @@ export default function StreamDetailPage() {
       {sales.length === 0 && (
         <div className="sd-card sd-empty-sales">
           <p>No sales linked to this stream.</p>
-          <Link href="/sales" className="sd-link">Log sales →</Link>
+          <Link href="/sales" className="sd-link">Log sales</Link>
         </div>
       )}
 
@@ -167,6 +257,25 @@ export default function StreamDetailPage() {
         .sd-buyer-row{display:flex;justify-content:space-between;font-size:13px}
         .sd-buyer-name{color:#d4d4d8;transition:color 0.15s}.sd-buyer-name:hover{color:#f59e0b}
         .sd-buyer-amt{color:#f4f4f5;font-weight:500}
+        .sd-add-inv-btn{background:none;border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:5px 12px;font-family:'DM Mono',monospace;font-size:12px;color:#f59e0b;cursor:pointer}
+        .sd-add-inv-btn:hover{border-color:rgba(245,158,11,0.6)}
+        .sd-add-inv-btn:disabled{opacity:0.4;cursor:not-allowed}
+        .sd-inv-picker{background:#0e0e0f;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px}
+        .sd-select{background:#18181b;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;font-family:'DM Mono',monospace;font-size:12px;color:#d4d4d8;width:100%;cursor:pointer}
+        .sd-select:focus{outline:none;border-color:rgba(245,158,11,0.4)}
+        .sd-qty-input{background:#18181b;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:12px;color:#d4d4d8;width:70px;text-align:center}
+        .sd-qty-input:focus{outline:none;border-color:rgba(245,158,11,0.4)}
+        .sd-confirm-btn{background:#f59e0b;color:#0e0e0f;border:none;border-radius:6px;padding:6px 14px;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;cursor:pointer}
+        .sd-confirm-btn:disabled{opacity:0.5;cursor:not-allowed}
+        .sd-cancel-btn{background:none;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:12px;color:#71717a;cursor:pointer}
+        .sd-inv-list{display:flex;flex-direction:column;gap:8px}
+        .sd-inv-row{display:flex;align-items:center;gap:12px;padding:8px 12px;background:#0e0e0f;border-radius:8px;font-size:13px}
+        .sd-inv-name{flex:1;color:#e4e4e7}
+        .sd-inv-qty{color:#71717a;font-size:12px;min-width:60px}
+        .sd-inv-cost{color:#f59e0b;min-width:70px;text-align:right}
+        .sd-remove-btn{background:none;border:none;color:#3f3f46;font-size:16px;cursor:pointer;padding:0 4px;line-height:1}
+        .sd-remove-btn:hover{color:#f87171}
+        .sd-remove-btn:disabled{opacity:0.3;cursor:not-allowed}
         .sd-sales-table{overflow:auto}
         .sd-table{width:100%;border-collapse:collapse;font-size:13px;min-width:500px}
         .sd-table th{text-align:left;padding:10px 12px;color:#52525b;font-weight:400;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid rgba(255,255,255,0.06)}
