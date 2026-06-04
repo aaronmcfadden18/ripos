@@ -32,6 +32,7 @@ export default function InventoryPage() {
   const [editPacks, setEditPacks] = useState('')
   const [editPrice, setEditPrice] = useState('')
   const [editSaving, setEditSaving] = useState(false)
+  const [editVat, setEditVat] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -129,6 +130,7 @@ export default function InventoryPage() {
     setEditQty(item.quantity?.toString() ?? '')
     setEditPacks(item.packs_per_box?.toString() ?? '')
     setEditPrice(item.suggested_price?.toString() ?? '')
+    setEditVat(item.vat_reclaimable ?? false)
   }
 
   const handleEditSave = async () => {
@@ -141,6 +143,7 @@ export default function InventoryPage() {
       quantity: parseInt(editQty) || 0,
       packs_per_box: parseInt(editPacks) || null,
       suggested_price: parseFloat(editPrice) || null,
+      vat_reclaimable: editVat,
     }).eq('id', editingId)
     const { data } = await supabase.from('inventory_items').select('*').order('created_at', { ascending: false })
     setItems(data ?? [])
@@ -400,6 +403,14 @@ export default function InventoryPage() {
                         <label className="iv-label">Sell price (£)</label>
                         <input className="iv-input" type="number" min="0" step="0.01" value={editPrice} onChange={e => setEditPrice(e.target.value)} placeholder="0.00" />
                       </div>
+                    <div className="iv-field" style={{gridColumn:'1/-1'}}>
+                      <label className="iv-label" style={{display:'flex',alignItems:'center',gap:'10px',cursor:'pointer'}}>
+                        <div onClick={() => setEditVat(v => !v)} style={{width:'36px',height:'20px',borderRadius:'99px',background:editVat?'#f59e0b':'rgba(255,255,255,0.08)',position:'relative',transition:'background 0.2s',flexShrink:0,cursor:'pointer'}}>
+                          <div style={{position:'absolute',top:'3px',left:editVat?'19px':'3px',width:'14px',height:'14px',borderRadius:'50%',background:'#fff',transition:'left 0.2s'}}/>
+                        </div>
+                        <span>VAT reclaimable on this stock</span>
+                      </label>
+                    </div>
                     </div>
                     <div style={{display:'flex',gap:'8px',justifyContent:'flex-end',marginTop:'4px'}}>
                       <button className="iv-ghost" onClick={() => setEditingId(null)} disabled={editSaving}>Cancel</button>
@@ -413,7 +424,10 @@ export default function InventoryPage() {
                         <p className="iv-item-name">{item.product_name}</p>
                         {item.set_name && <p className="iv-item-set">{item.set_name}</p>}
                       </div>
+                      <div style={{display:'flex',gap:'6px',alignItems:'center',flexShrink:0}}>
                       <span className={`iv-badge iv-${status.cls}`}>{status.label}</span>
+                      {item.vat_reclaimable && <span className="iv-badge" style={{background:'rgba(96,165,250,0.08)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.18)'}}>VAT</span>}
+                    </div>
                     </div>
                     <div className="iv-item-stats">
                       <div><p className="iv-stat-label">Cost/box</p><p className="iv-stat-val">{item.cost_per_unit ? '£' + item.cost_per_unit : '—'}</p></div>
