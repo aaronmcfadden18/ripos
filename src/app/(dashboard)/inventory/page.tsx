@@ -25,6 +25,13 @@ export default function InventoryPage() {
   const [showCsvImport, setShowCsvImport] = useState(false)
   const [csvImporting, setCsvImporting] = useState(false)
   const [csvResult, setCsvResult] = useState<{imported:number,skipped:number}|null>(null)
+  const [editingId, setEditingId] = useState<string|null>(null)
+  const [editName, setEditName] = useState('')
+  const [editCost, setEditCost] = useState('')
+  const [editQty, setEditQty] = useState('')
+  const [editPacks, setEditPacks] = useState('')
+  const [editPrice, setEditPrice] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -113,6 +120,32 @@ export default function InventoryPage() {
     const newQty = Math.max(0, (item?.quantity ?? 0) + delta)
     setItems(prev => prev.map(i => i.id === id ? { ...i, quantity: newQty } : i))
     await supabase.from('inventory_items').update({ quantity: newQty }).eq('id', id)
+  }
+
+  const startEdit = (item: any) => {
+    setEditingId(item.id)
+    setEditName(item.product_name ?? '')
+    setEditCost(item.cost_per_unit?.toString() ?? '')
+    setEditQty(item.quantity?.toString() ?? '')
+    setEditPacks(item.packs_per_box?.toString() ?? '')
+    setEditPrice(item.suggested_price?.toString() ?? '')
+  }
+
+  const handleEditSave = async () => {
+    if (!editingId) return
+    setEditSaving(true)
+    const supabase = createClient()
+    await supabase.from('inventory_items').update({
+      product_name: editName.trim(),
+      cost_per_unit: parseFloat(editCost) || null,
+      quantity: parseInt(editQty) || 0,
+      packs_per_box: parseInt(editPacks) || null,
+      suggested_price: parseFloat(editPrice) || null,
+    }).eq('id', editingId)
+    const { data } = await supabase.from('inventory_items').select('*').order('created_at', { ascending: false })
+    setItems(data ?? [])
+    setEditingId(null)
+    setEditSaving(false)
   }
 
   const handleDelete = async (id: string) => {
@@ -340,37 +373,75 @@ export default function InventoryPage() {
             const costPerPack = packs && item.cost_per_unit ? item.cost_per_unit / packs : null
             const totalPacks = packs ? q * packs : null
             const status = q === 0 ? { label: 'Out', cls: 'red' } : q <= 2 ? { label: 'Low', cls: 'amber' } : { label: 'In stock', cls: 'green' }
+            const isEditing = editingId === item.id
             return (
               <div key={item.id} className="iv-item">
-                <div className="iv-item-head">
-                  <div>
-                    <p className="iv-item-name">{item.product_name}</p>
-                    {item.set_name && <p className="iv-item-set">{item.set_name}</p>}
-                  </div>
-                  <span className={`iv-badge iv-${status.cls}`}>{status.label}</span>
-                </div>
-                <div className="iv-item-stats">
-                  <div><p className="iv-stat-label">Cost/box</p><p className="iv-stat-val">{item.cost_per_unit ? '£' + item.cost_per_unit : '—'}</p></div>
-                  <div><p className="iv-stat-label">Sell price</p><p className="iv-stat-val">{item.suggested_price ? '£' + item.suggested_price : '—'}</p></div>
-                  <div><p className="iv-stat-label">Stock value</p><p className="iv-stat-val">{item.cost_per_unit ? '£' + (q * item.cost_per_unit).toFixed(0) : '—'}</p></div>
-                </div>
-                {packs && (
-                  <div className="iv-pack-section">
-                    <div className="iv-pack-row">
-                      <div><p className="iv-stat-label">Packs/box</p><p className="iv-stat-val">{packs}</p></div>
-                      <div><p className="iv-stat-label">Total packs</p><p className="iv-stat-val iv-amber">{totalPacks ?? '—'}</p></div>
-                      <div><p className="iv-stat-label">Cost/pack</p><p className="iv-stat-val">{costPerPack ? '£' + costPerPack.toFixed(2) : '—'}</p></div>
+                {isEditing ? (
+                  <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+                    <p style={{fontSize:'11px',color:'#52525b',textTransform:'uppercase',letterSpacing:'0.06em'}}>Editing</p>
+                    <div className="iv-field">
+                      <label className="iv-label">Product name</label>
+                      <input className="iv-input" value={editName} onChange={e => setEditName(e.target.value)} />
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+                      <div className="iv-field">
+                        <label className="iv-label">Cost/box (£)</label>
+                        <input className="iv-input" type="number" min="0" step="0.01" value={editCost} onChange={e => setEditCost(e.target.value)} placeholder="0.00" />
+                      </div>
+                      <div className="iv-field">
+                        <label className="iv-label">Quantity (boxes)</label>
+                        <input className="iv-input" type="number" min="0" value={editQty} onChange={e => setEditQty(e.target.value)} />
+                      </div>
+                      <div className="iv-field">
+                        <label className="iv-label">Packs/box</label>
+                        <input className="iv-input" type="number" min="0" value={editPacks} onChange={e => setEditPacks(e.target.value)} placeholder="e.g. 24" />
+                      </div>
+                      <div className="iv-field">
+                        <label className="iv-label">Sell price (£)</label>
+                        <input className="iv-input" type="number" min="0" step="0.01" value={editPrice} onChange={e => setEditPrice(e.target.value)} placeholder="0.00" />
+                      </div>
+                    </div>
+                    <div style={{display:'flex',gap:'8px',justifyContent:'flex-end',marginTop:'4px'}}>
+                      <button className="iv-ghost" onClick={() => setEditingId(null)} disabled={editSaving}>Cancel</button>
+                      <button className="iv-submit" onClick={handleEditSave} disabled={editSaving || !editName.trim()}>{editSaving ? 'Saving...' : 'Save'}</button>
                     </div>
                   </div>
+                ) : (
+                  <>
+                    <div className="iv-item-head">
+                      <div>
+                        <p className="iv-item-name">{item.product_name}</p>
+                        {item.set_name && <p className="iv-item-set">{item.set_name}</p>}
+                      </div>
+                      <span className={`iv-badge iv-${status.cls}`}>{status.label}</span>
+                    </div>
+                    <div className="iv-item-stats">
+                      <div><p className="iv-stat-label">Cost/box</p><p className="iv-stat-val">{item.cost_per_unit ? '£' + item.cost_per_unit : '—'}</p></div>
+                      <div><p className="iv-stat-label">Sell price</p><p className="iv-stat-val">{item.suggested_price ? '£' + item.suggested_price : '—'}</p></div>
+                      <div><p className="iv-stat-label">Stock value</p><p className="iv-stat-val">{item.cost_per_unit ? '£' + (q * item.cost_per_unit).toFixed(0) : '—'}</p></div>
+                    </div>
+                    {packs && (
+                      <div className="iv-pack-section">
+                        <div className="iv-pack-row">
+                          <div><p className="iv-stat-label">Packs/box</p><p className="iv-stat-val">{packs}</p></div>
+                          <div><p className="iv-stat-label">Total packs</p><p className="iv-stat-val iv-amber">{totalPacks ?? '—'}</p></div>
+                          <div><p className="iv-stat-label">Cost/pack</p><p className="iv-stat-val">{costPerPack ? '£' + costPerPack.toFixed(2) : '—'}</p></div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="iv-item-foot">
+                      <div className="iv-qty">
+                        <button className="iv-qty-btn" onClick={() => handleQty(item.id, -1)} disabled={q === 0}>−</button>
+                        <span className="iv-qty-val">{q} box{q !== 1 ? 'es' : ''}</span>
+                        <button className="iv-qty-btn" onClick={() => handleQty(item.id, 1)}>+</button>
+                      </div>
+                      <div style={{display:'flex',gap:'8px'}}>
+                        <button className="iv-edit" onClick={() => startEdit(item)}>Edit</button>
+                        <button className="iv-del" onClick={() => handleDelete(item.id)}>Remove</button>
+                      </div>
+                    </div>
+                  </>
                 )}
-                <div className="iv-item-foot">
-                  <div className="iv-qty">
-                    <button className="iv-qty-btn" onClick={() => handleQty(item.id, -1)} disabled={q === 0}>−</button>
-                    <span className="iv-qty-val">{q} box{q !== 1 ? 'es' : ''}</span>
-                    <button className="iv-qty-btn" onClick={() => handleQty(item.id, 1)}>+</button>
-                  </div>
-                  <button className="iv-del" onClick={() => handleDelete(item.id)}>Remove</button>
-                </div>
               </div>
             )
           })}
@@ -441,6 +512,8 @@ export default function InventoryPage() {
         .iv-qty-btn{background:none;border:none;color:#71717a;width:32px;height:32px;font-size:16px;cursor:pointer}
         .iv-qty-btn:disabled{opacity:0.3;cursor:not-allowed}
         .iv-qty-val{font-size:13px;font-weight:500;color:#f4f4f5;min-width:70px;text-align:center;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06);height:32px;display:flex;align-items:center;justify-content:center}
+        .iv-edit{background:none;border:1px solid rgba(255,255,255,0.08);color:#71717a;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;padding:4px 8px;border-radius:5px}
+        .iv-edit:hover{color:#f4f4f5;border-color:rgba(255,255,255,0.2)}
         .iv-del{background:none;border:none;color:#3f3f46;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;padding:4px 8px;border-radius:5px}
         .iv-del:hover{color:#f87171;background:rgba(248,113,113,0.08)}
         @media(max-width:640px){.iv-form-grid{grid-template-columns:1fr 1fr}.iv-modal{max-width:100%;margin:0}}
