@@ -14,18 +14,42 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    // Supabase sends the token in URL hash. Detect session on mount.
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
+
+    // Handle PKCE code exchange (code in query params)
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('code')
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (!error) setSessionReady(true)
+        else setError('Reset link expired. Please request a new one.')
+      })
+      return
+    }
+
+    // Handle implicit flow (token in hash fragment)
+    const hash = window.location.hash
+    if (hash && hash.includes('access_token')) {
+      // Supabase client auto-detects hash tokens
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) setSessionReady(true)
+      })
+    }
+
+    // Listen for PASSWORD_RECOVERY event
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
         setSessionReady(true)
-      } else {
-        // Listen for auth state change (handles the recovery token flow)
-        const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-          if (session) setSessionReady(true)
-        })
-        return () => listener.subscription.unsubscribe()
       }
     })
+
+    // Also check if already has session (e.g. hash was auto-processed)
+    setTimeout(() => {
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) setSessionReady(true)
+      })
+    }, 1000)
+
+    return () => listener.subscription.unsubscribe()
   }, [])
 
   const handleReset = async (e: React.FormEvent) => {
@@ -71,7 +95,7 @@ export default function ResetPasswordPage() {
               <input type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} required style={{background:'#0e0e0f',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'12px 14px',fontFamily:'DM Mono,monospace',fontSize:'16px',color:'#f4f4f5',outline:'none',width:'100%'}}/>
             </div>
             {error && <p style={{fontSize:'12px',color:'#f87171'}}>{error}</p>}
-            {!sessionReady && !error && <p style={{fontSize:'12px',color:'#71717a'}}>Verifying reset link...</p>}
+            {!sessionReady && !error && <p style={{fontSize:'12px',color:'#f59e0b'}}>Verifying reset link...</p>}
             <button type="submit" disabled={loading || !sessionReady} style={{background:sessionReady?'#f59e0b':'#52525b',color:'#0e0e0f',border:'none',borderRadius:'8px',padding:'12px',fontFamily:'DM Mono,monospace',fontSize:'14px',fontWeight:500,cursor:sessionReady?'pointer':'not-allowed',marginTop:'8px'}}>
               {loading ? 'Updating...' : 'Update password'}
             </button>
