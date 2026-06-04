@@ -176,7 +176,7 @@ export default function LoginPage() {
           <button className="rip-back" onClick={()=>setShowAuth(false)}>← Back to home</button>
           {sent ? (
             <div className="rip-sent">
-              <p className="rip-sent-title">{mode === 'magic' ? 'Check your email' : 'Account created!'}</p>
+              <p className="rip-sent-title">{mode === 'magic' || mode === 'reset' ? 'Check your email for a reset link' : 'Account created!'}</p>
               <p className="rip-sent-sub">{mode === 'magic' ? 'We sent you a magic link.' : 'You can now sign in.'}</p>
               <button className="rip-tab-active" onClick={()=>{setSent(false);setMode('login')}}>Sign in instead</button>
             </div>
