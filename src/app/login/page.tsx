@@ -192,7 +192,7 @@ export default function LoginPage() {
                   <label className="rip-label">Email address</label>
                   <input className="rip-input" type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} required autoFocus/>
                 </div>
-                {mode !== 'magic' && (
+                {mode !== 'magic' && mode !== 'reset' && (
                   <div className="rip-field">
                     <label className="rip-label">Password</label>
                     <input className="rip-input" type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} required/>
