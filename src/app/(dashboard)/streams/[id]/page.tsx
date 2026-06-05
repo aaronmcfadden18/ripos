@@ -9,6 +9,7 @@ export default function StreamDetailPage() {
   const [stream, setStream] = useState<any>(null)
   const [sales, setSales] = useState<any[]>([])
   const [inventory, setInventory] = useState<any[]>([])
+  const [purchases, setPurchases] = useState<any[]>([])
   const [linkedProducts, setLinkedProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showInvPicker, setShowInvPicker] = useState(false)
@@ -19,15 +20,17 @@ export default function StreamDetailPage() {
   const load = async () => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    const [{ data: s }, { data: sa }, { data: inv }, { data: sp }] = await Promise.all([
+    const [{ data: s }, { data: sa }, { data: inv }, { data: purch }, { data: sp }] = await Promise.all([
       supabase.from('streams').select('*').eq('id', id).single(),
       supabase.from('sales').select('*').eq('stream_id', id).order('created_at', { ascending: false }),
       supabase.from('inventory_items').select('*').eq('user_id', user!.id).order('product_name'),
+      supabase.from('inventory_purchases').select('*, inventory_items(product_name)').eq('user_id', user!.id).order('purchase_date', { ascending: false }),
       supabase.from('stream_products').select('*, inventory_items(*)').eq('stream_id', id)
     ])
     setStream(s)
     setSales(sa ?? [])
     setInventory(inv ?? [])
+    setPurchases(purch ?? [])
     setLinkedProducts(sp ?? [])
     setLoading(false)
   }
@@ -38,14 +41,19 @@ export default function StreamDetailPage() {
     if (!addingItem) return
     setSaving(true)
     const supabase = createClient()
+    // addingItem is now a purchase lot
     const costPerPack = (addingItem.cost_per_unit ?? 0) / (addingItem.packs_per_box ?? 1)
     await supabase.from('stream_products').insert({
       stream_id: id,
-      inventory_item_id: addingItem.id,
+      inventory_item_id: addingItem.inventory_item_id,
+      inventory_purchase_id: addingItem.id,
       quantity_used: addQty,
       cost_at_time: costPerPack
     })
-    const newLinked = [...linkedProducts, { inventory_items: addingItem, quantity_used: addQty, cost_at_time: costPerPack }]
+    // Deduct packs from the lot
+    const newPacksRemaining = Math.max(0, (addingItem.packs_remaining ?? 0) - addQty)
+    await supabase.from('inventory_purchases').update({ packs_remaining: newPacksRemaining }).eq('id', addingItem.id)
+    const newLinked = [...linkedProducts, { inventory_items: addingItem.inventory_items, quantity_used: addQty, cost_at_time: costPerPack }]
     const newInventoryCost = newLinked.reduce((a: number, lp: any) => a + (lp.cost_at_time * lp.quantity_used), 0)
     await supabase.from('streams').update({ inventory_cost: newInventoryCost }).eq('id', id)
     setAddingItem(null)
@@ -58,6 +66,14 @@ export default function StreamDetailPage() {
   const handleRemoveItem = async (spId: string) => {
     setSaving(true)
     const supabase = createClient()
+    // Restore packs to the lot if it exists
+    const lp = linkedProducts.find((l: any) => l.id === spId)
+    if (lp?.inventory_purchase_id) {
+      const { data: lot } = await supabase.from('inventory_purchases').select('packs_remaining').eq('id', lp.inventory_purchase_id).single()
+      if (lot) {
+        await supabase.from('inventory_purchases').update({ packs_remaining: (lot.packs_remaining ?? 0) + lp.quantity_used }).eq('id', lp.inventory_purchase_id)
+      }
+    }
     await supabase.from('stream_products').delete().eq('id', spId)
     const newInventoryCost = linkedProducts
       .filter((lp: any) => lp.id !== spId)
@@ -78,8 +94,8 @@ export default function StreamDetailPage() {
     return acc
   }, {})
   const sortedBuyers = Object.entries(topBuyers).sort((a: any, b: any) => b[1] - a[1])
-  const linkedIds = new Set(linkedProducts.map((lp: any) => lp.inventory_item_id))
-  const availableInv = inventory.filter(i => !linkedIds.has(i.id))
+  const linkedLotIds = new Set(linkedProducts.map((lp: any) => lp.inventory_purchase_id).filter(Boolean))
+  const availableInv = purchases.filter(p => !linkedLotIds.has(p.id) && (p.packs_remaining ?? 0) > 0)
 
   return (
     <div className="sd">
@@ -159,7 +175,7 @@ export default function StreamDetailPage() {
               <p style={{fontSize:'13px',color:'#52525b'}}>No more items to add. <Link href="/inventory" style={{color:'#f59e0b'}}>Manage inventory</Link></p>
             ) : (
               <>
-                <select className="sd-select" value={addingItem?.id ?? ''} onChange={e => setAddingItem(inventory.find(i => i.id === e.target.value) ?? null)}>
+                <select className="sd-select" value={addingItem?.id ?? ''} onChange={e => setAddingItem(purchases.find(p => p.id === e.target.value) ?? null)}>
                   <option value="">Select an item...</option>
                   {availableInv.map(i => (
                     <option key={i.id} value={i.id}>{i.product_name} - £{((i.cost_per_unit??0)/(i.packs_per_box??1)).toFixed(2)}/pack ({i.quantity ?? 0} left)</option>
@@ -168,8 +184,8 @@ export default function StreamDetailPage() {
                 {addingItem && (
                   <div style={{display:'flex',gap:'10px',alignItems:'center',marginTop:'10px',flexWrap:'wrap'}}>
                     <label style={{fontSize:'12px',color:'#71717a'}}>Packs used:</label>
-                    <input type="number" min={1} max={addingItem.quantity ?? 999} value={addQty} onChange={e => setAddQty(parseInt(e.target.value)||1)} className="sd-qty-input" />
-                    <span style={{fontSize:'12px',color:'#52525b'}}>= £{(((addingItem.cost_per_unit??0)/(addingItem.packs_per_box??1))*addQty).toFixed(2)}</span>
+                    <input type="number" min={1} max={addingItem.packs_remaining ?? 999} value={addQty} onChange={e => setAddQty(parseInt(e.target.value)||1)} className="sd-qty-input" />
+                    <span style={{fontSize:'12px',color:'#52525b'}}>= £{(((addingItem.cost_per_unit??0)/(addingItem.packs_per_box??1))*addQty).toFixed(2)} · {(addingItem.packs_remaining??0) - addQty} packs left after</span>
                     <button className="sd-confirm-btn" onClick={handleAddItem} disabled={saving}>{saving ? '...' : 'Add'}</button>
                     <button className="sd-cancel-btn" onClick={() => { setShowInvPicker(false); setAddingItem(null); setAddQty(1) }}>Cancel</button>
                   </div>
