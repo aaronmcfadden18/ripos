@@ -16,22 +16,29 @@ export default function StreamDetailPage() {
   const [addingItem, setAddingItem] = useState<any>(null)
   const [addQty, setAddQty] = useState(1)
   const [saving, setSaving] = useState(false)
+  const [extras, setExtras] = useState<any[]>([])
+  const [showExtras, setShowExtras] = useState(false)
+  const [extraDesc, setExtraDesc] = useState('')
+  const [extraCost, setExtraCost] = useState('')
+  const [extraSaving, setExtraSaving] = useState(false)
 
   const load = async () => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    const [{ data: s }, { data: sa }, { data: inv }, { data: purch }, { data: sp }] = await Promise.all([
+    const [{ data: s }, { data: sa }, { data: inv }, { data: purch }, { data: sp }, { data: ex }] = await Promise.all([
       supabase.from('streams').select('*').eq('id', id).single(),
       supabase.from('sales').select('*').eq('stream_id', id).order('created_at', { ascending: false }),
       supabase.from('inventory_items').select('*').eq('user_id', user!.id).order('product_name'),
       supabase.from('inventory_purchases').select('*, inventory_items(product_name)').eq('user_id', user!.id).order('purchase_date', { ascending: false }),
-      supabase.from('stream_products').select('*, inventory_items(*)').eq('stream_id', id)
+      supabase.from('stream_products').select('*, inventory_items(*)').eq('stream_id', id),
+      supabase.from('stream_extras').select('*').eq('stream_id', id).order('created_at', { ascending: false })
     ])
     setStream(s)
     setSales(sa ?? [])
     setInventory(inv ?? [])
     setPurchases(purch ?? [])
     setLinkedProducts(sp ?? [])
+    setExtras(ex ?? [])
     setLoading(false)
   }
 
@@ -82,6 +89,39 @@ export default function StreamDetailPage() {
     setSaving(false)
     load()
   }
+
+  const handleAddExtra = async () => {
+    if (!extraDesc.trim() || !extraCost) return
+    setExtraSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('stream_extras').insert({
+      user_id: user!.id,
+      stream_id: id,
+      description: extraDesc.trim(),
+      cost: parseFloat(extraCost) || 0,
+    })
+    // Update stream inventory_cost to include extras
+    const extraTotal = [...extras, { cost: parseFloat(extraCost) || 0 }].reduce((a: number, e: any) => a + (e.cost ?? 0), 0)
+    const invTotal = linkedProducts.reduce((a: number, lp: any) => a + (lp.cost_at_time * lp.quantity_used), 0)
+    await supabase.from('streams').update({ inventory_cost: invTotal + extraTotal }).eq('id', id)
+    setExtraDesc('')
+    setExtraCost('')
+    setShowExtras(false)
+    setExtraSaving(false)
+    load()
+  }
+
+  const handleDeleteExtra = async (extraId: string, cost: number) => {
+    const supabase = createClient()
+    await supabase.from('stream_extras').delete().eq('id', extraId)
+    const extraTotal = extras.filter((e: any) => e.id !== extraId).reduce((a: number, e: any) => a + (e.cost ?? 0), 0)
+    const invTotal = linkedProducts.reduce((a: number, lp: any) => a + (lp.cost_at_time * lp.quantity_used), 0)
+    await supabase.from('streams').update({ inventory_cost: invTotal + extraTotal }).eq('id', id)
+    load()
+  }
+
+  const totalExtras = extras.reduce((a: number, e: any) => a + (e.cost ?? 0), 0)
 
   if (loading) return <div style={{minHeight:'100vh',background:'#0e0e0f',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{color:'#f59e0b',fontFamily:'DM Mono,monospace',fontSize:'14px'}}>Loading...</div></div>
   if (!stream) return <div style={{minHeight:'100vh',background:'#0e0e0f',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{color:'#f87171',fontFamily:'DM Mono,monospace'}}>Stream not found</div></div>
@@ -139,6 +179,7 @@ export default function StreamDetailPage() {
           <div className="sd-breakdown">
             <div className="sd-brow"><span>Revenue</span><span>£{(stream.revenue??0).toFixed(2)}</span></div>
             <div className="sd-brow sd-deduct"><span>Inventory cost</span><span>- £{Number(stream.inventory_cost??0).toFixed(2)}</span></div>
+            {totalExtras > 0 && <div className="sd-brow sd-deduct"><span>Giveaways & extras</span><span>(included above)</span></div>}
             <div className="sd-bdivider"/>
             <div className="sd-brow sd-total"><span>Net profit</span><span style={{color:profit>=0?'#4ade80':'#f87171'}}>£{profit.toFixed(2)}</span></div>
           </div>
@@ -206,6 +247,47 @@ export default function StreamDetailPage() {
                 <button className="sd-remove-btn" onClick={() => handleRemoveItem(lp.id)} disabled={saving}>x</button>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      <div className="sd-card">
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <h2 className="sd-card-title">Giveaways & extras</h2>
+          <button className="sd-add-inv-btn" onClick={() => setShowExtras(!showExtras)} disabled={saving}>+ Add cost</button>
+        </div>
+
+        {showExtras && (
+          <div className="sd-inv-picker">
+            <div style={{display:'flex',gap:'10px',alignItems:'flex-end',flexWrap:'wrap'}}>
+              <div style={{flex:1,minWidth:'150px'}}>
+                <label style={{fontSize:'12px',color:'#71717a',display:'block',marginBottom:'6px'}}>Description</label>
+                <input className="sd-select" value={extraDesc} onChange={e => setExtraDesc(e.target.value)} placeholder="e.g. SP Giveaway" autoFocus />
+              </div>
+              <div style={{width:'100px'}}>
+                <label style={{fontSize:'12px',color:'#71717a',display:'block',marginBottom:'6px'}}>Cost (£)</label>
+                <input className="sd-qty-input" type="number" min="0" step="0.01" value={extraCost} onChange={e => setExtraCost(e.target.value)} placeholder="0.00" style={{width:'100%'}} />
+              </div>
+              <button className="sd-confirm-btn" onClick={handleAddExtra} disabled={extraSaving || !extraDesc.trim() || !extraCost}>{extraSaving ? '...' : 'Add'}</button>
+              <button className="sd-cancel-btn" onClick={() => { setShowExtras(false); setExtraDesc(''); setExtraCost('') }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {extras.length === 0 ? (
+          <p style={{fontSize:'13px',color:'#3f3f46'}}>No giveaways or extra costs logged. Add any costs not covered by inventory.</p>
+        ) : (
+          <div className="sd-inv-list">
+            {extras.map((ex: any) => (
+              <div key={ex.id} className="sd-inv-row">
+                <span className="sd-inv-name">{ex.description}</span>
+                <span className="sd-inv-cost">£{Number(ex.cost).toFixed(2)}</span>
+                <button className="sd-remove-btn" onClick={() => handleDeleteExtra(ex.id, ex.cost)} disabled={saving}>x</button>
+              </div>
+            ))}
+            <div style={{display:'flex',justifyContent:'flex-end',paddingTop:'6px',borderTop:'1px solid rgba(255,255,255,0.04)'}}>
+              <span style={{fontSize:'12px',color:'#f59e0b'}}>Total extras: £{totalExtras.toFixed(2)}</span>
+            </div>
           </div>
         )}
       </div>
