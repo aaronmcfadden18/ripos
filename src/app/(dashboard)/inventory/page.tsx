@@ -391,12 +391,14 @@ export default function InventoryPage() {
         <div className="iv-grid">
           {items.map(item => {
             const lots = lotsFor(item.id)
-            const packsLeft = packsRemainingFor(item.id)
+            const packsLeft = lots.length > 0 ? packsRemainingFor(item.id) : (item.quantity ?? 0)
+            const hasLegacyData = lots.length === 0 && (item.quantity > 0 || item.cost_per_unit)
             const isExpanded = expandedItems.has(item.id)
             const isEditing = editingId === item.id
             const isAddingLot = addingLotFor === item.id
             const status = packsLeft === 0 && lots.length > 0 ? { label: 'Out', cls: 'red' }
               : packsLeft <= 5 && lots.length > 0 ? { label: 'Low', cls: 'amber' }
+              : lots.length === 0 && hasLegacyData ? { label: 'In stock', cls: 'green' }
               : lots.length === 0 ? { label: 'No lots', cls: 'amber' }
               : { label: 'In stock', cls: 'green' }
 
@@ -444,10 +446,13 @@ export default function InventoryPage() {
                     </div>
 
                     <div className="iv-item-stats">
-                      <div><p className="iv-stat-label">Packs left</p><p className="iv-stat-val" style={{color:packsLeft===0?'#f87171':packsLeft<=5?'#f59e0b':'#4ade80'}}>{packsLeft}</p></div>
-                      <div><p className="iv-stat-label">Lots</p><p className="iv-stat-val">{lots.length}</p></div>
+                      <div><p className="iv-stat-label">{lots.length > 0 ? 'Packs left' : 'Boxes'}</p><p className="iv-stat-val" style={{color:packsLeft===0?'#f87171':packsLeft<=5?'#f59e0b':'#4ade80'}}>{packsLeft}</p></div>
+                      <div><p className="iv-stat-label">{lots.length > 0 ? 'Lots' : 'Cost/box'}</p><p className="iv-stat-val">{lots.length > 0 ? lots.length : (item.cost_per_unit ? '£'+item.cost_per_unit : '—')}</p></div>
                       <div><p className="iv-stat-label">Packs/box</p><p className="iv-stat-val">{item.packs_per_box ?? '—'}</p></div>
                     </div>
+                    {hasLegacyData && lots.length === 0 && (
+                      <p style={{fontSize:'11px',color:'#52525b'}}>Legacy data — add a purchase lot to track packs accurately</p>
+                    )}
 
                     {lots.length > 0 && (
                       <button className="iv-lots-toggle" onClick={() => toggleExpand(item.id)}>
