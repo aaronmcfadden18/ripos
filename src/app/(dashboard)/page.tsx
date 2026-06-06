@@ -146,6 +146,7 @@ export default function DashboardPage() {
         </div>
         <div style={{display:'flex',gap:'10px'}}>
           <Link href="/streams/import" className="dash-import" id="tour-import">↑ Import CSV</Link>
+          <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
           <Link href="/streams/new" className="dash-cta" id="tour-new-stream">+ New stream</Link>
           <div style={{position:'relative'}}>
             <button className="dash-avatar" onClick={() => setShowMenu(v => !v)}>
