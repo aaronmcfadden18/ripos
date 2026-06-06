@@ -187,6 +187,13 @@ export default function StreamDetailPage() {
             <div className="sd-bar-fill" style={{width:Math.min(Math.abs(parseFloat(margin)),100)+'%',background:profit>=0?'#4ade80':'#f87171'}}/>
           </div>
           <p className="sd-margin-label">{margin}% margin</p>
+          {parseFloat(margin) > 80 && linkedProducts.length === 0 && (
+            <div className="sd-margin-warning">
+              <p className="sd-margin-warning-title">⚠ This margin looks high</p>
+              <p className="sd-margin-warning-text">Stock cost isn't included yet — your real profit is likely lower. Add inventory to get an accurate number.</p>
+              <button className="sd-margin-warning-btn" onClick={() => setShowInvPicker(true)}>+ Add stock cost →</button>
+            </div>
+          )}
           {stream.notes && <div className="sd-notes"><p className="sd-notes-label">Notes</p><p className="sd-notes-text">{stream.notes}</p></div>}
         </div>
 
@@ -348,6 +355,11 @@ export default function StreamDetailPage() {
         .sd-bar-track{height:4px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden}
         .sd-bar-fill{height:100%;border-radius:99px;transition:width 0.3s}
         .sd-margin-label{font-size:12px;color:#52525b}
+        .sd-margin-warning{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;margin-top:4px}
+        .sd-margin-warning-title{font-size:13px;color:#f59e0b;font-weight:500}
+        .sd-margin-warning-text{font-size:12px;color:#a1a1aa;line-height:1.5}
+        .sd-margin-warning-btn{background:none;border:1px solid rgba(245,158,11,0.4);border-radius:6px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:12px;color:#f59e0b;cursor:pointer;width:fit-content}
+        .sd-margin-warning-btn:hover{background:rgba(245,158,11,0.08)}
         .sd-notes{background:#0e0e0f;border-radius:8px;padding:12px}
         .sd-notes-label{font-size:10px;color:#3f3f46;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}
         .sd-notes-text{font-size:13px;color:#a1a1aa;line-height:1.6}
