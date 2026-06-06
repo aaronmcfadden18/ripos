@@ -394,7 +394,7 @@ export default function DashboardPage() {
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
         body{background:#0e0e0f;color:#d4d4d8;font-family:'DM Mono',monospace}
-        .dash{max-width:960px;margin:0 auto;padding:32px 24px;display:flex;flex-direction:column;gap:18px;position:relative}
+        .dash{max-width:960px;margin:0 auto;padding:32px 24px;display:flex;flex-direction:column;gap:18px;position:relative;overflow-x:hidden}
         .dash-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
         .dash-avatar{width:38px;height:38px;border-radius:50%;background:#18181b;border:1px solid rgba(255,255,255,0.15);color:#a1a1aa;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Mono',monospace}
         .dash-avatar:hover{border-color:rgba(245,158,11,0.4);color:#f59e0b}
