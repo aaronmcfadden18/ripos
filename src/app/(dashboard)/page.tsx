@@ -447,9 +447,10 @@ export default function DashboardPage() {
         .dash-insight-loading{display:flex;align-items:center;gap:10px;padding:16px;font-size:13px;color:#52525b}
         .dash-insight-spinner{width:16px;height:16px;border:2px solid rgba(245,158,11,0.2);border-top-color:#f59e0b;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
         @keyframes spin{to{transform:rotate(360deg)}}
-        .dash-insight-row{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.04)}
+        .dash-insight-row{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.04);min-width:0;overflow:hidden}
         .dash-insight-row:last-child{border-bottom:none}
         .dash-insight-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+        .dash-insight-text-wrap{min-width:0;flex:1;overflow:hidden}
         .dash-insight-headline{word-break:break-word;overflow-wrap:break-word;font-size:13px;color:#f4f4f5;font-weight:500;margin-bottom:3px}
         .dash-insight-detail{word-break:break-word;overflow-wrap:break-word;font-size:12px;color:#a1a1aa;line-height:1.5;margin-bottom:8px}.dash-insight-actions{margin-top:4px}.dash-insight-btn{font-size:11px;color:#f59e0b;text-decoration:none;border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:4px 10px;font-family:"DM Mono",monospace}.dash-insight-btn:hover{background:rgba(245,158,11,0.08)}
         @media(max-width:640px){.dash-grid2{grid-template-columns:1fr}.dash-stats{grid-template-columns:1fr 1fr}}
