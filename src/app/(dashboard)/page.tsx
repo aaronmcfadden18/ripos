@@ -396,7 +396,7 @@ export default function DashboardPage() {
         body{background:#0e0e0f;color:#d4d4d8;font-family:'DM Mono',monospace}
         .dash{max-width:960px;margin:0 auto;padding:32px 24px;display:flex;flex-direction:column;gap:18px;position:relative}
         .dash-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
-        .dash-avatar{width:32px;height:32px;border-radius:50%;background:#18181b;border:1px solid rgba(255,255,255,0.1);color:#a1a1aa;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Mono',monospace}
+        .dash-avatar{width:38px;height:38px;border-radius:50%;background:#18181b;border:1px solid rgba(255,255,255,0.15);color:#a1a1aa;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Mono',monospace}
         .dash-avatar:hover{border-color:rgba(245,158,11,0.4);color:#f59e0b}
         .dash-menu{position:absolute;right:0;top:40px;background:#18181b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px;width:200px;z-index:50;display:flex;flex-direction:column;gap:2px}
         .dash-menu-email{font-size:11px;color:#52525b;padding:4px 8px 8px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
