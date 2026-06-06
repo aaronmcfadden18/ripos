@@ -160,7 +160,7 @@ export default function DashboardPage() {
                   <Link href="/settings" className="dash-menu-item" onClick={() => setShowMenu(false)}>⚙ Settings</Link>
                   <Link href="/streams" className="dash-menu-item" onClick={() => setShowMenu(false)}>↗ Streams</Link>
                   <Link href="/inventory" className="dash-menu-item" onClick={() => setShowMenu(false)}>↗ Inventory</Link>
-                  <Link href="/buyers" className="dash-menu-item" onClick={() => setShowMenu(false)}>↗ Buyers</Link>
+                  
                   <button className="dash-menu-signout" onClick={async()=>{const {createClient}=await import("@/lib/supabase/client");const sb=createClient();await sb.auth.signOut();window.location.href="/login"}}>Sign out</button>
                 </div>
               </>
