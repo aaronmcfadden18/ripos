@@ -257,6 +257,16 @@ export default function DashboardPage() {
         )
       })()}
 
+      {streams.length === 0 && (
+        <div className="dash-onboard-banner">
+          <div className="dash-onboard-left">
+            <p className="dash-onboard-title">You're 60 seconds away from seeing your true profit</p>
+            <p className="dash-onboard-sub">Import your Whatnot CSV to instantly see revenue, profit and margin across all your streams.</p>
+          </div>
+          <Link href="/streams/import" className="dash-onboard-cta">Import CSV →</Link>
+        </div>
+      )}
+
       {releases.length > 0 && (
         <div className="dash-card">
           <div className="dash-card-head">
@@ -416,6 +426,12 @@ export default function DashboardPage() {
         .dash-stat-sub{font-size:11px;color:#52525b}
         .dash-amber{color:#f59e0b}
         .dash-blue{color:#60a5fa}
+        .dash-onboard-banner{background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(245,158,11,0.03));border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+        .dash-onboard-title{font-size:15px;color:#f4f4f5;font-weight:500;margin-bottom:6px}
+        .dash-onboard-sub{font-size:13px;color:#71717a;line-height:1.5}
+        .dash-onboard-left{flex:1;min-width:200px}
+        .dash-onboard-cta{background:#f59e0b;color:#0e0e0f;border-radius:8px;padding:10px 20px;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;text-decoration:none;white-space:nowrap;flex-shrink:0}
+        .dash-onboard-cta:hover{background:#e08e00}
         .dash-card{background:#18181b;border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:hidden}
         .dash-card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06)}
         .dash-card-title{font-size:11px;color:#52525b;text-transform:uppercase;letter-spacing:0.08em}
