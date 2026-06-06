@@ -14,6 +14,9 @@ export default function DashboardPage() {
   const [sales, setSales] = useState<any[]>([])
   const [inventory, setInventory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [showMenu, setShowMenu] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
+  const [storeName, setStoreName] = useState('')
   const [showTour, setShowTour] = useState(false)
   const [statModal, setStatModal] = useState<string|null>(null)
   const [insights, setInsights] = useState<any[]>([])
@@ -59,6 +62,19 @@ export default function DashboardPage() {
       }
     }
     load()
+  }, [])
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserEmail(user.email ?? '')
+        const { data: p } = await supabase.from('user_profiles').select('store_name').eq('user_id', user.id).single()
+        if (p?.store_name) setStoreName(p.store_name)
+      }
+    }
+    loadUser()
   }, [])
 
   const totalRevenue = streams.reduce((a, s) => a + (s.revenue ?? 0), 0)
@@ -130,7 +146,25 @@ export default function DashboardPage() {
         </div>
         <div style={{display:'flex',gap:'10px'}}>
           <Link href="/streams/import" className="dash-import" id="tour-import">↑ Import CSV</Link>
-          <Link href="/streams/new" className="dash-cta" id="tour-new-stream">+ New stream</Link><button className="dash-signout" onClick={async()=>{const {createClient}=await import("@/lib/supabase/client");const sb=createClient();sb.auth.signOut().then(()=>{ window.location.href="/login" })}}>Sign out</button>
+          <Link href="/streams/new" className="dash-cta" id="tour-new-stream">+ New stream</Link>
+          <div style={{position:'relative'}}>
+            <button className="dash-avatar" onClick={() => setShowMenu(v => !v)}>
+              {(storeName || userEmail).slice(0,2).toUpperCase()}
+            </button>
+            {showMenu && (
+              <>
+                <div style={{position:'fixed',inset:0,zIndex:40}} onClick={() => setShowMenu(false)} />
+                <div className="dash-menu">
+                  <p className="dash-menu-email">{storeName || userEmail}</p>
+                  <Link href="/settings" className="dash-menu-item" onClick={() => setShowMenu(false)}>⚙ Settings</Link>
+                  <Link href="/streams" className="dash-menu-item" onClick={() => setShowMenu(false)}>↗ Streams</Link>
+                  <Link href="/inventory" className="dash-menu-item" onClick={() => setShowMenu(false)}>↗ Inventory</Link>
+                  <Link href="/buyers" className="dash-menu-item" onClick={() => setShowMenu(false)}>↗ Buyers</Link>
+                  <button className="dash-menu-signout" onClick={async()=>{const {createClient}=await import("@/lib/supabase/client");const sb=createClient();await sb.auth.signOut();window.location.href="/login"}}>Sign out</button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -360,6 +394,14 @@ export default function DashboardPage() {
         body{background:#0e0e0f;color:#d4d4d8;font-family:'DM Mono',monospace}
         .dash{max-width:960px;margin:0 auto;padding:32px 24px;display:flex;flex-direction:column;gap:18px;position:relative}
         .dash-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+        .dash-avatar{width:32px;height:32px;border-radius:50%;background:#18181b;border:1px solid rgba(255,255,255,0.1);color:#a1a1aa;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Mono',monospace}
+        .dash-avatar:hover{border-color:rgba(245,158,11,0.4);color:#f59e0b}
+        .dash-menu{position:absolute;right:0;top:40px;background:#18181b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px;width:200px;z-index:50;display:flex;flex-direction:column;gap:2px}
+        .dash-menu-email{font-size:11px;color:#52525b;padding:4px 8px 8px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .dash-menu-item{display:block;padding:7px 10px;border-radius:6px;font-size:13px;color:#d4d4d8;text-decoration:none;font-family:'DM Mono',monospace}
+        .dash-menu-item:hover{background:rgba(255,255,255,0.04);color:#f4f4f5}
+        .dash-menu-signout{margin-top:4px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;width:100%;text-align:left;background:none;border:none;padding:7px 10px;border-radius:6px;font-size:13px;color:#f87171;cursor:pointer;font-family:'DM Mono',monospace}
+        .dash-menu-signout:hover{background:rgba(248,113,113,0.08)}
         .dash-logo{font-size:16px;font-weight:500;color:#f4f4f5;margin-bottom:4px}
         .dash-logo em{font-style:normal;color:#f59e0b}
         .dash-title{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;color:#f4f4f5}
