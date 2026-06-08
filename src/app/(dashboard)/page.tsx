@@ -399,6 +399,10 @@ export default function DashboardPage() {
           <span className="dash-nav-label">Sales</span>
           <span className="dash-nav-sub">{sales.length} sales · £{totalSalesRevenue.toFixed(0)}</span>
         </Link>
+        <Link href="/clips" className="dash-nav-item" style={{borderColor:'rgba(245,158,11,0.2)'}}>
+          <span className="dash-nav-label">📍 Clip tracker</span>
+          <span className="dash-nav-sub">Mark moments live</span>
+        </Link>
       </div>
 
       <style>{`
