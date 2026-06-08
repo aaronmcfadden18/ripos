@@ -62,12 +62,14 @@ export default function ClipsPage() {
     if (!user) return
     setSaving(true)
     const supabase = createClient()
-    const { data } = await supabase.from('stream_clips').insert({
+    const { data, error } = await supabase.from('stream_clips').insert({
       user_id: user.id,
       timestamp_seconds: elapsed,
       note: note.trim() || null,
       tag,
     }).select().single()
+    console.log('clip insert result:', data, error)
+    if (error) alert('Save failed: ' + error.message)
     if (data) setClips(prev => [data, ...prev])
     setNote('')
     setSaving(false)
