@@ -13,6 +13,7 @@ export default function ClipsPage() {
   const [streams, setStreams] = useState<any[]>([])
   const [attachingTo, setAttachingTo] = useState<string|null>(null)
   const [saving, setSaving] = useState(false)
+  const [justMarked, setJustMarked] = useState(false)
   const [attached, setAttached] = useState(false)
   const timerRef = useRef<any>(null)
   const startTimeRef = useRef<number>(0)
@@ -70,6 +71,8 @@ export default function ClipsPage() {
     if (data) setClips(prev => [data, ...prev])
     setNote('')
     setSaving(false)
+    setJustMarked(true)
+    setTimeout(() => setJustMarked(false), 800)
   }
 
   const handleAttach = async (streamId: string) => {
@@ -145,9 +148,9 @@ export default function ClipsPage() {
             <p className="cl-timer">{formatTime(elapsed)}</p>
           </div>
 
-          <button className="cl-mark-btn" onClick={handleMark} disabled={saving}>
-            <span style={{fontSize:'24px'}}>📍</span>
-            Mark moment
+          <button className="cl-mark-btn" onClick={handleMark} disabled={saving} style={{background:justMarked?'#4ade80':'#f59e0b',color:justMarked?'#0e0e0f':'#0e0e0f',transition:'background 0.2s'}}>
+            <span style={{fontSize:'24px'}}>{justMarked?'✓':'📍'}</span>
+            {justMarked ? 'Saved!' : saving ? 'Saving...' : 'Mark moment'}
           </button>
 
           <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
