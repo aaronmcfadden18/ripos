@@ -458,7 +458,7 @@ export default function DashboardPage() {
         .dash-bar-fill{height:100%;background:#f59e0b;border-radius:99px}
         .dash-buyer-count{font-size:10px;color:#52525b;width:20px;text-align:right;flex-shrink:0}
         .dash-buyer-total{font-size:11px;color:#f4f4f5;font-weight:500;width:44px;text-align:right;flex-shrink:0}
-        .dash-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+        .dash-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
         .dash-nav-item{background:#18181b;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;text-decoration:none;display:flex;flex-direction:column;gap:4px}
         .dash-nav-item:hover{border-color:rgba(255,255,255,0.15)}
         .dash-nav-label{font-size:13px;color:#a1a1aa}
