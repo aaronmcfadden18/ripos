@@ -158,6 +158,7 @@ export default function DashboardPage() {
                 <div className="dash-menu">
                   <p className="dash-menu-email">{storeName || userEmail}</p>
                   <Link href="/settings" className="dash-menu-item" onClick={() => setShowMenu(false)}>⚙ Settings</Link>
+                  <Link href="/clips" className="dash-menu-item" onClick={() => setShowMenu(false)}>📍 Clip tracker</Link>
                   <Link href="/streams" className="dash-menu-item" onClick={() => setShowMenu(false)}>↗ Streams</Link>
                   <Link href="/inventory" className="dash-menu-item" onClick={() => setShowMenu(false)}>↗ Inventory</Link>
                   
