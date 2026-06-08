@@ -46,8 +46,8 @@ export default function ClipsPage() {
     setIsLive(false)
     if (timerRef.current) clearInterval(timerRef.current)
     const supabase = createClient()
-    const { data: c } = await supabase.from('stream_clips').select('*').eq('user_id', user.id).is('stream_id', null).order('created_at', { ascending: false })
-    setClips(c ?? [])
+    const { data: freshClips } = await supabase.from('stream_clips').select('*').eq('user_id', user.id).is('stream_id', null).order('created_at', { ascending: false })
+    setClips(freshClips ?? [])
   }
 
   const formatTime = (s: number) => {
