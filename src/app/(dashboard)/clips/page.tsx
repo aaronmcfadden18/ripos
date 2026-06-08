@@ -41,9 +41,12 @@ export default function ClipsPage() {
     }, 1000)
   }
 
-  const handleEndStream = () => {
+  const handleEndStream = async () => {
     setIsLive(false)
     if (timerRef.current) clearInterval(timerRef.current)
+    const supabase = createClient()
+    const { data: c } = await supabase.from('stream_clips').select('*').eq('user_id', user.id).is('stream_id', null).order('created_at', { ascending: false })
+    setClips(c ?? [])
   }
 
   const formatTime = (s: number) => {
