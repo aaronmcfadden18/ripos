@@ -29,11 +29,12 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session
     const userId = session.metadata?.user_id || session.client_reference_id
     if (userId) {
-      await supabase.from('user_profiles').upsert({
+      const { error: upsertError } = await supabase.from('user_profiles').upsert({
         id: userId,
         subscription_status: 'trialing',
         stripe_customer_id: session.customer as string,
       }, { onConflict: 'id' })
+      console.log('WEBHOOK upsert userId:', userId, 'error:', JSON.stringify(upsertError))
     }
   }
 
