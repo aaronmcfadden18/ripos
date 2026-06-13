@@ -34,7 +34,6 @@ export async function POST(req: Request) {
         subscription_status: 'trialing',
         stripe_customer_id: session.customer as string,
       }, { onConflict: 'id' })
-      console.log('WEBHOOK upsert userId:', userId, 'error:', JSON.stringify(upsertError))
     }
   }
 
