@@ -157,6 +157,7 @@ export default function DashboardPage() {
                 <div style={{position:'fixed',inset:0,zIndex:40}} onClick={() => setShowMenu(false)} />
                 <div className="dash-menu">
                   <p className="dash-menu-email">{storeName || userEmail}</p>
+                  <Link href="/pricing" className="dash-menu-item dash-menu-upgrade" onClick={() => setShowMenu(false)}>⬆ Upgrade to Pro</Link>
                   <Link href="/settings" className="dash-menu-item" onClick={() => setShowMenu(false)}>⚙ Settings</Link>
                   <Link href="/clips" className="dash-menu-item" onClick={() => setShowMenu(false)}>📍 Clip tracker</Link>
                   <Link href="/streams" className="dash-menu-item" onClick={() => setShowMenu(false)}>↗ Streams</Link>
@@ -417,6 +418,8 @@ export default function DashboardPage() {
         .dash-menu-email{font-size:11px;color:#52525b;padding:4px 8px 8px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .dash-menu-item{display:block;padding:7px 10px;border-radius:6px;font-size:13px;color:#d4d4d8;text-decoration:none;font-family:'DM Mono',monospace}
         .dash-menu-item:hover{background:rgba(255,255,255,0.04);color:#f4f4f5}
+        .dash-menu-upgrade{color:#f59e0b;font-weight:500}
+        .dash-menu-upgrade:hover{background:rgba(245,158,11,0.1);color:#f59e0b}
         .dash-menu-signout{margin-top:4px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;width:100%;text-align:left;background:none;border:none;padding:7px 10px;border-radius:6px;font-size:13px;color:#f87171;cursor:pointer;font-family:'DM Mono',monospace}
         .dash-menu-signout:hover{background:rgba(248,113,113,0.08)}
         .dash-logo{font-size:16px;font-weight:500;color:#f4f4f5;margin-bottom:4px}
