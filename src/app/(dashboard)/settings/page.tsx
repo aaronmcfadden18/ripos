@@ -65,6 +65,19 @@ export default function SettingsPage() {
     setTimeout(() => setPwSuccess(false), 3000)
   }
 
+  const [portalLoading, setPortalLoading] = useState(false)
+  const handleManageSubscription = async () => {
+    setPortalLoading(true)
+    try {
+      const res = await fetch('/api/create-portal-session', { method: 'POST' })
+      const data = await res.json()
+      if (data.url) { window.location.href = data.url }
+      else { alert(data.error || 'Could not open billing portal'); setPortalLoading(false) }
+    } catch {
+      alert('Could not open billing portal'); setPortalLoading(false)
+    }
+  }
+
   const handleSignOut = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
@@ -132,6 +145,16 @@ export default function SettingsPage() {
         <div className="st-actions">
           <button className="st-save" onClick={handlePasswordChange} disabled={pwSaving || !newPassword || !confirmPassword}>
             {pwSaving ? 'Updating…' : 'Update password'}
+          </button>
+        </div>
+      </div>
+
+      <div className="st-card">
+        <h2 className="st-card-title">Subscription</h2>
+        <p className="st-sub" style={{marginBottom:'4px'}}>Manage your plan, payment method, or cancel anytime.</p>
+        <div className="st-actions">
+          <button className="st-save" onClick={handleManageSubscription} disabled={portalLoading}>
+            {portalLoading ? 'Opening…' : 'Manage subscription'}
           </button>
         </div>
       </div>
