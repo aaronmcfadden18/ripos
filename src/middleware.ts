@@ -35,6 +35,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  // Subscription gate: paying/trialing users only on core app pages
+  const gatedPaths = ['/dashboard-home', '/streams', '/inventory', '/sales', '/clips']
+  const isGated = gatedPaths.some(p => pathname === p || pathname.startsWith(p + '/')) || pathname === '/'
+  if (user && isGated) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('subscription_status')
+      .eq('id', user.id)
+      .single()
+    const status = profile?.subscription_status
+    const active = status === 'trialing' || status === 'active'
+    if (!active) {
+      return NextResponse.redirect(new URL('/pricing', request.url))
+    }
+  }
+
   return supabaseResponse
 }
 
